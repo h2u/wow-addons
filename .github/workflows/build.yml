@@ -7,22 +7,27 @@ name: CI
   workflow_dispatch:
     inputs:
       mode:
-        description: Checks only, first release, or retry a draft
+        description: Checks, prepare the pending draft, or retry published release assets
         type: choice
         options:
           - check
-          - initial
+          - prepare
           - retry
         default: check
         required: true
       tag:
-        description: Existing vX.Y.Z draft tag (retry only)
+        description: Published vX.Y.Z tag (retry only)
         type: string
         required: false
+  release:
+    types:
+      - published
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: >-
+    ci-${{ github.event_name == 'release' && github.event.release.tag_name || github.event_name ==
+    'workflow_dispatch' && inputs.mode == 'retry' && inputs.tag || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   changes:
@@ -40,6 +45,7 @@ jobs:
           node-version: 24
       - id: changes
         run: node scripts/changes.cjs
+    if: github.event_name != 'release' && !(github.event_name == 'workflow_dispatch' && inputs.mode == 'retry')
   check:
     strategy:
       fail-fast: false
@@ -96,60 +102,31 @@ jobs:
     needs: changes
     if: needs.changes.outputs.check == 'true'
   release:
+    name: Select published release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
+    if: >-
+      github.event_name == 'release' || github.event_name == 'workflow_dispatch' && inputs.mode == 'retry' &&
+      github.ref == 'refs/heads/main'
     outputs:
-      created: ${{ steps.manual.outputs.created || steps.release.outputs.release_created }}
-      tag: ${{ steps.manual.outputs.tag || steps.release.outputs.tag_name }}
+      tag: ${{ steps.select.outputs.tag }}
+      sha: ${{ steps.select.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: 24
-      - name: Prepare manual first release or retry
-        if: github.event_name == 'workflow_dispatch' && inputs.mode != 'check'
-        id: manual
+          ref: main
+      - uses: actions/github-script@v7
+        id: select
         env:
-          RELEASE_MODE: ${{ inputs.mode }}
-          REQUESTED_TAG: ${{ inputs.tag }}
-        run: node scripts/manual-release.cjs
-      - name: Require a published baseline before release PRs
-        if: github.event_name == 'push'
-        id: baseline
-        shell: bash
-        run: |-
-          releases=$(gh release list --limit 1 --exclude-drafts --exclude-pre-releases --json tagName)
-          if [ "$releases" = "[]" ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Publish the first release using Run workflow with mode=initial."
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: googleapis/release-please-action@v4
-        if: github.event_name == 'push' && steps.baseline.outputs.ready == 'true'
-        id: release
+          EVENT_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-    needs:
-      - changes
-      - check
-    if: >-
-      github.event_name != 'pull_request' && needs.check.result == 'success' && (github.event_name == 'push'
-      && needs.changes.outputs.release == 'true' || github.event_name == 'workflow_dispatch' && inputs.mode !=
-      'check')
-    concurrency:
-      group: release-metadata
-      cancel-in-progress: false
+          script: |-
+            const { selectRelease } = require('./scripts/release-target.cjs');
+            const result = await selectRelease({ github, context, tag: process.env.EVENT_TAG });
+            core.setOutput('tag', result.tag);
+            core.setOutput('sha', result.sha);
   windows:
     needs: release
-    if: needs.release.outputs.created == 'true'
+    if: needs.release.result == 'success'
     runs-on: windows-2022
     permissions:
       contents: write
@@ -159,7 +136,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.release.outputs.tag }}
+          ref: ${{ needs.release.outputs.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -172,15 +149,12 @@ jobs:
         with:
           shared-key: native
           cache-on-failure: false
-      - name: Verify version and draft
-        shell: pwsh
-        run: |-
-          node scripts/check-release.cjs
-          $release = gh release view $env:RELEASE_TAG --json isDraft | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or !$release.isDraft) { throw 'Expected an existing draft release.' }
       - run: npm ci
       - run: npm run format:check
       - run: npm run lint
+      - name: Set application version from release tag
+        run: node scripts/release-version.cjs
+      - run: node scripts/check-release.cjs
       - run: npm run check
       - run: npm test
       - run: cargo fmt --check
@@ -209,9 +183,10 @@ jobs:
           name: release-ui-diagnostics
           path: ${{ runner.temp }}/wow-tauri-test-*/ui-startup.json
           if-no-files-found: ignore
+    name: Build Windows release
   macos:
     needs: release
-    if: needs.release.outputs.created == 'true'
+    if: needs.release.result == 'success'
     runs-on: macos-latest
     permissions:
       contents: write
@@ -222,7 +197,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.release.outputs.tag }}
+          ref: ${{ needs.release.outputs.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -236,10 +211,12 @@ jobs:
         with:
           shared-key: macos-universal-release
           cache-on-failure: false
-      - run: node scripts/check-release.cjs
       - run: npm ci
       - run: npm run format:check
       - run: npm run lint
+      - name: Set application version from release tag
+        run: node scripts/release-version.cjs
+      - run: node scripts/check-release.cjs
       - run: npm run check
       - run: npm test
       - run: cargo fmt --check
@@ -254,6 +231,7 @@ jobs:
           if-no-files-found: error
       - name: Attach macOS assets
         run: gh release upload "$RELEASE_TAG" dist/* --clobber
+    name: Build macOS release
   publish:
     needs:
       - release
@@ -268,14 +246,17 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - name: Publish completed release
-        run: gh release edit "$RELEASE_TAG" --draft=false --latest
+      - name: Verify asset uploads completed
+        run: echo "Windows and macOS assets attached to $RELEASE_TAG"
+    name: Finalize release assets
   result:
     name: CI result
     needs:
       - changes
       - check
-    if: always()
+    if: >-
+      always() && github.event_name != 'release' && !(github.event_name == 'workflow_dispatch' && inputs.mode
+      == 'retry')
     runs-on: ubuntu-latest
     steps:
       - name: Verify required jobs
@@ -291,3 +272,26 @@ jobs:
             test "$CHECK_REQUIRED" = false
             test "$CHECK_RESULT" = skipped
           fi
+  draft:
+    name: Update pending draft
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+      - check
+    if: >-
+      always() && needs.changes.result == 'success' && (needs.check.result == 'success' || needs.check.result
+      == 'skipped') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' && inputs.mode
+      == 'prepare' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/github-script@v7
+        with:
+          script: |-
+            const { syncDraft } = require('./scripts/draft-release.cjs');
+            const result = await syncDraft({ github, context });
+            core.info(JSON.stringify(result));
