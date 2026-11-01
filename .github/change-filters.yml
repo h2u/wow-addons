@@ -12,4 +12,4 @@ release:
   - '!tests/**'
   - '!.github/**'
   - '!{rustfmt.toml,eslint.config.cjs,.prettier*}'
-  - '!scripts/{check,test,smoke,downgrade-smoke,native-driver,zip-fixture,changes,draft-release,manual-release}.cjs'
+  - '!scripts/{check,test,test-portable-update,smoke,downgrade-smoke,native-driver,zip-fixture,changes,draft-release,manual-release}.cjs'
