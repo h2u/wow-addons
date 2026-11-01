@@ -64,12 +64,14 @@ pub fn blp(b: &[u8]) -> Result<DynamicImage, String> {
             let c0 = u16::from_le_bytes(b[base..base + 2].try_into().unwrap());
             let c1 = u16::from_le_bytes(b[base + 2..base + 4].try_into().unwrap());
             let mut c = [color(c0), color(c1), [0; 4], [0; 4]];
-            for ch in 0..3 {
+            let first = c[0];
+            let second = c[1];
+            for (ch, (&left, &right)) in first[..3].iter().zip(&second[..3]).enumerate() {
                 if c0 > c1 || mode != 1 {
-                    c[2][ch] = ((2 * c[0][ch] as u16 + c[1][ch] as u16) / 3) as u8;
-                    c[3][ch] = ((c[0][ch] as u16 + 2 * c[1][ch] as u16) / 3) as u8;
+                    c[2][ch] = ((2 * left as u16 + right as u16) / 3) as u8;
+                    c[3][ch] = ((left as u16 + 2 * right as u16) / 3) as u8;
                 } else {
-                    c[2][ch] = ((c[0][ch] as u16 + c[1][ch] as u16) / 2) as u8;
+                    c[2][ch] = ((left as u16 + right as u16) / 2) as u8;
                 }
             }
             c[2][3] = 255;
@@ -150,6 +152,8 @@ pub fn png(bytes: &[u8], ext: &str) -> Option<Vec<u8>> {
 }
 pub fn local(game: &Value, group: &Value) -> Option<Vec<u8>> {
     let base = fs::canonicalize(text(&game["installation"], "addonsPath")).ok()?;
+    let icon = regex::Regex::new(r"(?mi)^##\s*IconTexture:\s*(.+)").unwrap();
+    let title = regex::Regex::new(r"(?mi)^##\s*Title:.*?\|T([^:|]+)").unwrap();
     for a in list(&group["members"]) {
         let mut refs = Vec::<PathBuf>::new();
         if !text(&a, "iconPath").is_empty() {
@@ -158,8 +162,6 @@ pub fn local(game: &Value, group: &Value) -> Option<Vec<u8>> {
         let toc = text(&a, "toc");
         if !toc.is_empty() && Path::new(toc).file_name().is_some_and(|f| f == toc) {
             if let Ok(content) = fs::read_to_string(base.join(text(&a, "folder")).join(toc)) {
-                let icon = regex::Regex::new(r"(?mi)^##\s*IconTexture:\s*(.+)").unwrap();
-                let title = regex::Regex::new(r"(?mi)^##\s*Title:.*?\|T([^:|]+)").unwrap();
                 for capture in [icon.captures(&content), title.captures(&content)]
                     .into_iter()
                     .flatten()

@@ -235,7 +235,13 @@ pub fn record(
     } else {
         format!("curseforge:{}", source["id"])
     };
-    let mut entry = json!({"id":id,"primary":main["folder"],"installedVersion":main["version"],"folders":folders,"digest":digest});
+    let mut entry = json!({
+        "id": id,
+        "primary": main["folder"],
+        "installedVersion": main["version"],
+        "folders": folders,
+        "digest": digest,
+    });
     if !source.is_null() {
         entry["title"] = source["name"].clone();
         entry["projectId"] = source["id"].clone();
@@ -280,6 +286,21 @@ mod tests {
     #[test]
     fn conflicting_links_keep_addons_separate() {
         let a = json!([{"folder":"Bagnon","curseProjectId":1},{"folder":"BagBrother","curseProjectId":1}]);
-        assert_eq!(groups(&a,&json!({"Bagnon":{"url":"https://www.curseforge.com/wow/addons/one"},"BagBrother":{"url":"https://www.curseforge.com/wow/addons/two"}}),&json!([])).len(),2);
+        assert_eq!(
+            groups(
+                &a,
+                &json!({
+                    "Bagnon": {
+                        "url": "https://www.curseforge.com/wow/addons/one",
+                    },
+                    "BagBrother": {
+                        "url": "https://www.curseforge.com/wow/addons/two",
+                    },
+                }),
+                &json!([])
+            )
+            .len(),
+            2
+        );
     }
 }

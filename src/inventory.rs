@@ -148,8 +148,7 @@ fn clean_title(text: &str) -> String {
             }
         }
     }
-    loop {
-        let Some(a) = text.find("|c") else { break };
+    while let Some(a) = text.find("|c") {
         if text
             .as_bytes()
             .get(a + 2..a + 10)

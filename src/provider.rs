@@ -46,7 +46,16 @@ pub fn parse_url(input: &str) -> Result<(String, Option<u64>, String)> {
     ))
 }
 pub fn type_id(flavor: &str) -> Result<u64> {
-    match flavor{"Forever"=>Ok(88568),"Classic Era"=>Ok(67408),f if f.starts_with("Retail")=>Ok(517),_=>Err("Automatic release selection for this client is not configured. Import a ZIP built for this client.".into())}
+    match flavor {
+        "Forever" => Ok(88568),
+        "Classic Era" => Ok(67408),
+        f if f.starts_with("Retail") => Ok(517),
+        _ => Err(
+            "Automatic release selection for this client is not configured. \
+             Import a ZIP built for this client."
+                .into(),
+        ),
+    }
 }
 pub fn supports(file: &Value, project: &Value, flavor: &str) -> bool {
     let Ok(id) = type_id(flavor) else {
@@ -141,7 +150,7 @@ impl Provider {
                 .filter(|f| {
                     f["releaseType"] == 1 && f["isAvailable"] != false && supports(f, p, flavor)
                 })
-                .max_by_key(|f| date(f))
+                .max_by_key(date)
                 .ok_or(format!("No compatible stable release for {flavor}."))?
         };
         if file["releaseType"] != 1 || file["isAvailable"] == false || !supports(&file, p, flavor) {
@@ -172,12 +181,23 @@ impl Provider {
             })
             .filter_map(|i| i["fileId"].as_u64())
             .max();
-        Ok(
-            json!({"source":{"id":p["id"],"slug":p["slug"],"name":p["name"],"url":base,"fileId":f["id"],"fileVersion":f["displayName"],"isLatestStable":f["releaseType"]==1&&(id.is_none()||f["id"].as_u64()==latest_id)},"downloadPage":format!("{base}/download/{}",f["id"]),"project":p,"file":f}),
-        )
+        Ok(json!({
+            "source": {
+                "id": p["id"],
+                "slug": p["slug"],
+                "name": p["name"],
+                "url": base,
+                "fileId": f["id"],
+                "fileVersion": f["displayName"],
+                "isLatestStable": f["releaseType"]==1&&(id.is_none()||f["id"].as_u64()==latest_id),
+            },
+            "downloadPage": format!("{base}/download/{}",f["id"]),
+            "project": p,
+            "file": f,
+        }))
     }
     pub fn releases(&self, url: &str, flavor: &str, key: &str, index: u64) -> Result<Value> {
-        if index > 9950 || index % 50 != 0 {
+        if index > 9950 || !index.is_multiple_of(50) {
             return Err("Invalid release page.".into());
         }
         let p = self.project(url, key)?;
@@ -202,9 +222,31 @@ impl Provider {
             .filter(|f| f["isAvailable"] != false && supports(f, &p, flavor))
             .collect();
         files.sort_by_key(|f| std::cmp::Reverse(date(f)));
-        Ok(
-            json!({"name":p["name"],"url":base,"files":files.iter().map(|f|json!({"id":f["id"],"name":f.get("displayName").unwrap_or(&f["fileName"]),"date":f["fileDate"],"channel":match f["releaseType"].as_u64(){Some(1)=>"Stable",Some(2)=>"Beta",Some(3)=>"Alpha",_=>"Other"},"gameVersions":f["gameVersions"],"url":format!("{base}/files/{}",f["id"])})).collect::<Vec<_>>(),"nextIndex":next}),
-        )
+        let releases: Vec<_> = files
+            .iter()
+            .map(|file| {
+                let channel = match file["releaseType"].as_u64() {
+                    Some(1) => "Stable",
+                    Some(2) => "Beta",
+                    Some(3) => "Alpha",
+                    _ => "Other",
+                };
+                json!({
+                    "id": file["id"],
+                    "name": file.get("displayName").unwrap_or(&file["fileName"]),
+                    "date": file["fileDate"],
+                    "channel": channel,
+                    "gameVersions": file["gameVersions"],
+                    "url": format!("{base}/files/{}", file["id"]),
+                })
+            })
+            .collect();
+        Ok(json!({
+            "name": p["name"],
+            "url": base,
+            "files": releases,
+            "nextIndex": next,
+        }))
     }
     pub fn response(&self, url: &str, icon: bool) -> Result<Response> {
         let mut target = url::Url::parse(url).map_err(|e| e.to_string())?;
@@ -369,7 +411,10 @@ pub fn assess(
     hashes: &Value,
 ) -> Value {
     if id.is_some() && id == latest["id"].as_u64() {
-        return json!({"status":"current","reason":"Installed file matches the latest compatible release."});
+        return json!({
+            "status": "current",
+            "reason": "Installed file matches the latest compatible release.",
+        });
     }
     if list(&latest["hashes"]).iter().any(|h| {
         let algo = match h["algo"].as_u64() {
@@ -379,19 +424,31 @@ pub fn assess(
         };
         !text(hashes, algo).is_empty() && text(hashes, algo).eq_ignore_ascii_case(text(h, "value"))
     }) {
-        return json!({"status":"current","reason":"Imported ZIP hash matches the latest release."});
+        return json!({
+            "status": "current",
+            "reason": "Imported ZIP hash matches the latest release.",
+        });
     }
     if id.is_some() && !installed.is_null() && date(installed) > 0 && date(latest) > 0 {
         return if date(installed) > date(latest) {
-            json!({"status":"ahead","reason":"Installed build is newer than stable."})
+            json!({
+                "status": "ahead",
+                "reason": "Installed build is newer than stable.",
+            })
         } else {
-            json!({"status":"available","reason":"A newer compatible release is available."})
+            json!({
+                "status": "available",
+                "reason": "A newer compatible release is available.",
+            })
         };
     }
     let a = normalize(version);
     let b = normalize(text(latest, "displayName"));
     if !a.is_empty() && a == b {
-        return json!({"status":"current","reason":"Installed version matches the release label."});
+        return json!({
+            "status": "current",
+            "reason": "Installed version matches the release label.",
+        });
     }
     let numeric = |s: &str| -> Option<Vec<u64>> {
         let parts: Vec<_> = s.split('.').collect();
@@ -409,12 +466,18 @@ pub fn assess(
                 json!({"status":"available","reason":"A newer version is available."})
             }
             std::cmp::Ordering::Greater => {
-                json!({"status":"ahead","reason":"Installed version is ahead of stable."})
+                json!({
+                    "status": "ahead",
+                    "reason": "Installed version is ahead of stable.",
+                })
             }
             _ => json!({"status":"current","reason":"Installed version matches stable."}),
         };
     }
-    json!({"status":"unverified","reason":"The installed release file is unknown and version labels cannot be compared reliably."})
+    json!({
+        "status": "unverified",
+        "reason": "The installed release file is unknown and version labels cannot be compared reliably.",
+    })
 }
 pub fn hashes(path: &Path) -> Result<Value> {
     let mut file = fs::File::open(path).map_err(|e| e.to_string())?;
@@ -434,9 +497,11 @@ pub fn hashes(path: &Path) -> Result<Value> {
         b.update(&buffer[..n]);
         c.update(&buffer[..n]);
     }
-    Ok(
-        json!({"sha256":format!("{:x}",a.finalize()),"sha1":format!("{:x}",b.finalize()),"md5":format!("{:x}",c.finalize())}),
-    )
+    Ok(json!({
+        "sha256": format!("{:x}",a.finalize()),
+        "sha1": format!("{:x}",b.finalize()),
+        "md5": format!("{:x}",c.finalize()),
+    }))
 }
 #[cfg(test)]
 mod tests {

@@ -251,7 +251,16 @@ fn analyze(
         if bundled && !required.contains(&package.folder) {
             skipped.push(package);
         } else {
-            return Err(format!("{} is not compatible with {f}. Declared interfaces: [{}]; expected {}. Choose a ZIP built for this client.",package.folder,package.interface,if family==0 {"Retail (100000+)".into()}else{format!("{family}xx")}));
+            let expected = if family == 0 {
+                "Retail (100000+)".to_string()
+            } else {
+                format!("{family}xx")
+            };
+            return Err(format!(
+                "{} is not compatible with {f}. Declared interfaces: [{}]; \
+                 expected {expected}. Choose a ZIP built for this client.",
+                package.folder, package.interface,
+            ));
         }
     }
     Ok((
@@ -265,10 +274,9 @@ fn analyze(
         prefix,
     ))
 }
-fn open(
-    root: &Path,
-    zip: &Path,
-) -> Result<(ZipArchive<fs::File>, Plan, Vec<Entry>, Vec<String>), String> {
+type OpenedArchive = (ZipArchive<fs::File>, Plan, Vec<Entry>, Vec<String>);
+
+fn open(root: &Path, zip: &Path) -> Result<OpenedArchive, String> {
     if fs::metadata(zip).map_err(|e| e.to_string())?.len() > 256 * 1024 * 1024 {
         return Err("ZIP exceeds 256 MB".into());
     }
@@ -454,9 +462,12 @@ pub fn install(root: &Path, zip: &Path, backup: &Path) -> Result<serde_json::Val
     changed.extend(skipped.clone());
     exchange(root, &stage, &changed, backup, true, &skipped)?;
     let cleanup = remove_stage(&stage, root).err();
-    Ok(
-        serde_json::json!({"installed":folders,"skipped":skipped,"backupPath":backup,"cleanupWarning":cleanup}),
-    )
+    Ok(serde_json::json!({
+        "installed": folders,
+        "skipped": skipped,
+        "backupPath": backup,
+        "cleanupWarning": cleanup,
+    }))
 }
 pub fn remove(root: &Path, folder_json: &str, backup: &Path) -> Result<serde_json::Value, String> {
     super::installation(root)?;
