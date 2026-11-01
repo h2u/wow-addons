@@ -576,8 +576,45 @@ async function renderAbout() {
   const about = await window.inventory.about();
   $('app-version').textContent = 'v' + about.version;
 }
+async function renderDesktopSettings() {
+  $('close-to-tray').checked = state.closeToTray;
+  $('check-on-startup').checked = state.checkUpdatesOnStartup;
+  $('launch-at-login').disabled = true;
+  const settings = await window.inventory.desktopSettings();
+  $('launch-at-login').checked = settings.autostart;
+  $('launch-at-login').disabled = false;
+  $('desktop-settings-status').textContent = settings.trayAvailable
+    ? ''
+    : 'System tray is unavailable. Closing the window will quit the app.';
+}
+for (const [id, key] of [
+  ['close-to-tray', 'closeToTray'],
+  ['check-on-startup', 'checkUpdatesOnStartup'],
+]) {
+  $(id).onchange = () =>
+    run('Saving settings…', async () => {
+      const old = state[key];
+      try {
+        state = await window.inventory.preferences({ [key]: $(id).checked });
+      } catch (e) {
+        $(id).checked = old;
+        throw e;
+      }
+    });
+}
+$('launch-at-login').onchange = () =>
+  run('Saving launch preference…', async () => {
+    const enabled = $('launch-at-login').checked;
+    try {
+      await window.inventory.setAutostart(enabled);
+    } catch (e) {
+      $('launch-at-login').checked = !enabled;
+      throw e;
+    }
+  });
 $('settings').onclick = () => {
   $('settings-dialog').showModal();
+  renderDesktopSettings().catch(error);
   renderKeyStatus().catch(error);
   renderAbout().catch(error);
 };
@@ -1068,6 +1105,34 @@ $('url-import-zip').onclick = async () => {
     await importArchive(file);
   }
 };
+async function maybeCheckStartupUpdates() {
+  if (!state.checkUpdatesOnStartup || !state.games.length) return;
+  const key = await window.inventory.keyStatus();
+  if (key.configured) await checkStartupUpdates();
+}
+async function checkStartupUpdates() {
+  await run('Checking addon updates…', async () => {
+    let available = 0,
+      failures = 0;
+    for (const game of [...state.games]) {
+      try {
+        const result = await window.inventory.checkUpdates(game.id);
+        state = result.state;
+        available += result.summary.available;
+        failures += result.summary.errors;
+      } catch {
+        failures++;
+      }
+    }
+    render();
+    if (available || failures)
+      notice(
+        available +
+          ' addon updates available.' +
+          (failures ? ' Some update checks failed. You can retry manually.' : ''),
+      );
+  });
+}
 async function checkAddonUpdates(folder) {
   await run('Checking addon updates…', async () => {
     const result = await window.inventory.checkUpdates(selected().id, folder);
@@ -1161,6 +1226,7 @@ window.addEventListener('unhandledrejection', (e) => error(e.reason));
     }
     state = loaded.state;
     render();
+    await maybeCheckStartupUpdates();
   } catch (e) {
     error(e);
   }

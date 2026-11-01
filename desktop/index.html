@@ -255,6 +255,22 @@
       </form>
       <span class="eyebrow">PREFERENCES</span>
       <h2>Settings</h2>
+      <div class="app-preferences">
+        <label
+          ><input id="close-to-tray" type="checkbox" /> Keep running in the tray when closing the
+          window</label
+        >
+        <label><input id="launch-at-login" type="checkbox" /> Launch at login</label>
+        <label
+          ><input id="check-on-startup" type="checkbox" /> Check addon updates when the app
+          starts</label
+        >
+        <p class="small">
+          Use the tray menu to open the window or quit. Launch at login uses this application's
+          current location; after moving a portable copy, enable it again.
+        </p>
+        <p id="desktop-settings-status" class="small" role="status"></p>
+      </div>
       <label class="field-label" for="api-key">CurseForge API key</label>
       <div class="path-input">
         <input
@@ -274,7 +290,10 @@
       <button id="open-api-console" class="subtle">
         <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Get a CurseForge API key
       </button>
-      <p class="small">Project links and icons are cached on this device. Startup stays offline.</p>
+      <p class="small">
+        Project links and icons are cached on this device. Automatic update checks require a saved
+        CurseForge API key and never install updates.
+      </p>
       <section class="about-section">
         <div class="about-title">
           <img class="about-logo" src="assets/app-icon.png" alt="" />

@@ -1752,3 +1752,17 @@ td {
   border-top: 1px solid #ffffff12;
   margin: 5px;
 }
+
+.app-preferences {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.app-preferences label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.app-preferences p {
+  margin: 0;
+}

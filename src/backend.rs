@@ -26,6 +26,8 @@ const COLUMNS: [&str; 7] = [
 pub fn defaults() -> Value {
     json!({
         "schemaVersion": 1,
+        "closeToTray": true,
+        "checkUpdatesOnStartup": true,
         "games": [],
         "selectedId": null,
         "columns": ["addon","version"],
@@ -56,6 +58,11 @@ fn validate(mut state: Value) -> Result<Value> {
                 .any(|a| !folder_name(text(a, "folder")) || !a["name"].is_string())
         {
             return Err("Invalid saved game inventory.".into());
+        }
+    }
+    for key in ["closeToTray", "checkUpdatesOnStartup"] {
+        if !state[key].is_boolean() {
+            state[key] = defaults()[key].clone();
         }
     }
     for key in ["bindings", "packages", "updates", "archives"] {
@@ -1185,7 +1192,13 @@ impl Service {
             }
             "preferences" => {
                 let data = args.first().ok_or("Missing preferences.")?;
-                for field in ["columns", "columnOrder", "sort"] {
+                for field in [
+                    "columns",
+                    "columnOrder",
+                    "sort",
+                    "closeToTray",
+                    "checkUpdatesOnStartup",
+                ] {
                     if data.get(field).is_some() {
                         self.state[field] = data[field].clone();
                     }
@@ -1443,6 +1456,37 @@ mod tests {
             .exists());
         fs::remove_dir_all(p).unwrap();
     }
+    #[test]
+    fn lifecycle_preferences_migrate_and_survive_restart() {
+        let p = temp();
+        let mut old = defaults();
+        old.as_object_mut().unwrap().remove("closeToTray");
+        old["checkUpdatesOnStartup"] = json!("invalid");
+        atomic(
+            &p.join("inventory.json"),
+            &serde_json::to_vec(&old).unwrap(),
+        )
+        .unwrap();
+        let mut s = Service::new(
+            p.clone(),
+            std::sync::Arc::new(|_| panic!("Loading must stay offline")),
+        )
+        .unwrap();
+        assert_eq!(s.state["closeToTray"], true);
+        assert_eq!(s.state["checkUpdatesOnStartup"], true);
+        s.dispatch(
+            "preferences",
+            &[json!({"closeToTray":false,"checkUpdatesOnStartup":false})],
+        )
+        .unwrap();
+        s.dispatch("preferences", &[json!({"columns":["addon","folder"]})])
+            .unwrap();
+        let s = Service::new(p.clone(), std::sync::Arc::new(|_| {})).unwrap();
+        assert_eq!(s.state["closeToTray"], false);
+        assert_eq!(s.state["checkUpdatesOnStartup"], false);
+        fs::remove_dir_all(p).unwrap();
+    }
+
     #[test]
     fn cached_startup_and_column_preferences_survive_restart() {
         let p = temp();
