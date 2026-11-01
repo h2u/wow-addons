@@ -51,6 +51,7 @@ window.inventory = {
   bind: (id, folder, url) => invoke('bind', id, folder, url),
   clientIcon: (id) => invoke('client-icon', id),
   releases: (id, folder, index = 0) => invoke('releases', id, folder, index),
+  urlReleases: (id, url, index = 0) => invoke('url-releases', id, url, index),
   prepareUrl: (id, url) => invoke('prepare-url', id, url),
   checkUpdates: (id, folder) => invoke('check-updates', id, folder),
   openDownload: (url) => invoke('open-download', url),

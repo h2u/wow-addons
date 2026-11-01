@@ -368,6 +368,7 @@
       <p>These folders already exist. Reinstall replaces them after making a backup.</p>
       <div id="import-packages"></div>
       <div class="dialog-footer">
+        <button id="pick-import-version" class="subtle" hidden>Pick Different Version</button>
         <button id="cancel-import" class="subtle">Cancel</button
         ><button id="confirm-import" class="primary">
           <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Reinstall
@@ -420,7 +421,7 @@
         <button id="url-open-page" class="subtle">
           <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Open Addon URL</button
         ><button id="confirm-url" class="primary">
-          <span class="ph-icon ph-plus" aria-hidden="true"></span>Install
+          <span class="ph-icon ph-plus" aria-hidden="true"></span>OK
         </button>
       </div>
     </dialog>
@@ -431,7 +432,7 @@
         </button>
       </form>
       <span class="eyebrow">CURSEFORGE RELEASES</span>
-      <h2>Downgrade / choose version</h2>
+      <h2>Choose version</h2>
       <p id="versions-summary"></p>
       <label class="field-label" for="release-choice">Compatible releases · newest first</label
       ><select id="release-choice" size="7" class="full-input" aria-label="Addon release"></select>

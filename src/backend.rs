@@ -1262,6 +1262,19 @@ impl Service {
                 Ok(Value::Null)
             }
             "check-updates" => self.check_updates(&arg(0)?, args.get(1).and_then(Value::as_str)),
+            "url-releases" => {
+                let id = arg(0)?;
+                let url = arg(1)?;
+                let g = self.game(&id)?;
+                let flavor = text(&g["installation"], "flavor");
+                let index = match args.get(2) {
+                    None | Some(Value::Null) => 0,
+                    Some(v) => v.as_u64().ok_or("Invalid release page.")?,
+                };
+                let mut result = self.provider.releases(&url, flavor, &self.key, index)?;
+                result["flavor"] = json!(flavor);
+                Ok(result)
+            }
             "releases" => {
                 let id = arg(0)?;
                 let group = self.group(&id, &arg(1)?)?;

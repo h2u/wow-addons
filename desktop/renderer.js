@@ -884,6 +884,7 @@ async function importArchive(file, id = selected()?.id, expectedFolder) {
   acceptPlan(plan);
 }
 function acceptPlan(plan) {
+  $('pick-import-version').hidden = !plan.source?.url;
   if (plan.packages.some((p) => p.exists) || (plan.skipped ?? []).some((p) => p.exists)) {
     pendingImport = plan;
     $('import-packages').innerHTML =
@@ -930,6 +931,13 @@ async function installPlan(token) {
     );
   });
 }
+$('pick-import-version').onclick = async () => {
+  const plan = pendingImport;
+  if (!plan?.source?.url) return;
+  const target = { id: selected().id, url: plan.source.url };
+  $('import-dialog').close();
+  await openVersions(target);
+};
 $('confirm-import').onclick = () => {
   const token = pendingImport?.token;
   pendingImport = null;
@@ -1041,17 +1049,9 @@ function showDownloadFallback(result) {
 }
 $('install-from-url').onclick = openUrlDialog;
 $('confirm-url').onclick = async () => {
-  let plan;
-  await run('Looking up CurseForge release…', async () => {
-    plan = await window.inventory.prepareUrl(selected().id, $('install-url').value);
-  });
-  if (!plan) return;
-  if (plan.blocked) {
-    showDownloadFallback(plan);
-    return;
-  }
+  const target = { id: selected().id, url: $('install-url').value.trim() };
   $('url-dialog').close();
-  acceptPlan(plan);
+  await openVersions(target);
 };
 $('install-url').onkeydown = (e) => {
   if (e.key === 'Enter') {
@@ -1182,8 +1182,13 @@ async function loadReleases() {
   if (!picker || picker.nextIndex === null) return;
   $('install-release').disabled = true;
   await run('Loading compatible releases…', async () => {
-    const result = await window.inventory.releases(picker.id, picker.folder, picker.nextIndex);
+    const result = picker.url
+      ? await window.inventory.urlReleases(picker.id, picker.url, picker.nextIndex)
+      : await window.inventory.releases(picker.id, picker.folder, picker.nextIndex);
     if (releasePicker !== picker) return;
+    if (picker.url)
+      picker.latestUrl = result.url || picker.url.replace(/\/(?:files|download)\/\d+\/?$/, '');
+    const previous = $('release-choice').value;
     picker.nextIndex = result.nextIndex;
     picker.installedFileId = result.installedFileId;
     picker.files.push(...result.files.filter((f) => !picker.files.some((p) => p.id === f.id)));
@@ -1191,9 +1196,16 @@ async function loadReleases() {
       result.name +
       ' · ' +
       result.flavor +
-      ' · Installed: ' +
-      (result.installedVersion || 'unknown');
+      (picker.url ? '' : ' · Installed: ' + (result.installedVersion || 'unknown'));
     $('release-choice').replaceChildren(
+      ...(picker.url
+        ? [
+            Object.assign(document.createElement('option'), {
+              value: 'latest',
+              textContent: 'Latest compatible stable release (default)',
+            }),
+          ]
+        : []),
       ...picker.files.map((f) => {
         const option = document.createElement('option');
         option.value = String(f.id);
@@ -1208,13 +1220,14 @@ async function loadReleases() {
         return option;
       }),
     );
-    $('release-choice').selectedIndex = -1;
+    $('release-choice').value = previous || (picker.url ? 'latest' : '');
     $('more-releases').hidden = picker.nextIndex === null;
     $('install-release').disabled = true;
     $('release-description').textContent = picker.files.length
       ? 'Choose the release you want to install.'
       : 'No compatible releases on this page.';
   });
+  $('release-choice').onchange();
 }
 $('more-releases').onclick = loadReleases;
 $('close-releases').onclick = () => $('versions-dialog').close();
@@ -1223,18 +1236,22 @@ $('versions-dialog').addEventListener('close', () => {
 });
 $('release-choice').onchange = () => {
   const f = releasePicker?.files.find((f) => f.id === Number($('release-choice').value));
-  $('install-release').disabled = !f || f.id === releasePicker?.installedFileId;
+  const latest = releasePicker?.url && $('release-choice').value === 'latest';
+  $('install-release').disabled = !latest && (!f || f.id === releasePicker?.installedFileId);
   $('release-description').textContent = f
     ? 'Game versions: ' + f.gameVersions.join(', ') + ' · File #' + f.id
-    : '';
+    : latest
+      ? 'The latest compatible stable release will be installed.'
+      : '';
 };
 $('install-release').onclick = async () => {
   const picker = releasePicker,
     file = picker?.files.find((f) => f.id === Number($('release-choice').value));
-  if (!file || file.id === picker.installedFileId) return;
+  const url = picker?.url && $('release-choice').value === 'latest' ? picker.latestUrl : file?.url;
+  if (!url || (file && file.id === picker.installedFileId)) return;
   let plan;
   await run('Preparing selected release…', async () => {
-    plan = await window.inventory.prepareUrl(picker.id, file.url);
+    plan = await window.inventory.prepareUrl(picker.id, url);
   });
   if (!plan) return;
   $('versions-dialog').close();
