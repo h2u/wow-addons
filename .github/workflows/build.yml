@@ -58,6 +58,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: native
+          cache-on-failure: false
       - name: Linux system libraries
         if: runner.os == 'Linux'
         run: >
@@ -162,6 +167,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: native
+          cache-on-failure: false
       - name: Verify version and draft
         shell: pwsh
         run: |-
@@ -221,6 +231,11 @@ jobs:
         with:
           components: rustfmt, clippy
           targets: aarch64-apple-darwin, x86_64-apple-darwin
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: macos-universal-release
+          cache-on-failure: false
       - run: node scripts/check-release.cjs
       - run: npm ci
       - run: npm run format:check
