@@ -38,6 +38,17 @@
       "nsis": {
         "languages": ["English"]
       }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJGMjgyRkQyQTMxRDhBOTUKUldTVmloMmowaThvTHdqYjJJTXBQcURJT2tXYXJsN1hOZWVrOHV6K1dqcS9LVnFSM1d1YXFnS0YK",
+      "endpoints": ["https://github.com/h2u/wow-addons/releases/latest/download/latest.json"],
+      "windows": {
+        "installMode": "passive"
+      },
+      "requireSignedVersion": true
     }
   }
 }

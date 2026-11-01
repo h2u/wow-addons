@@ -1226,6 +1226,7 @@ window.addEventListener('unhandledrejection', (e) => error(e.reason));
     }
     state = loaded.state;
     render();
+    checkApplicationUpdate(true);
     await maybeCheckStartupUpdates();
   } catch (e) {
     error(e);
@@ -1446,4 +1447,54 @@ $('library-menu').addEventListener('beforetoggle', (event) => {
 });
 $('library-menu').addEventListener('click', (event) => {
   if (event.target.closest('button')) $('library-menu').hidePopover();
+});
+
+let checkingApplicationUpdate = false;
+function setAppUpdateCheckDisabled(disabled) {
+  const button = $('check-app-update');
+  if (working && button.dataset.preBusyDisabled !== undefined)
+    button.dataset.preBusyDisabled = String(disabled);
+  else button.disabled = disabled;
+}
+async function checkApplicationUpdate(background = false) {
+  if (checkingApplicationUpdate) return;
+  checkingApplicationUpdate = true;
+  setAppUpdateCheckDisabled(true);
+  $('app-update-status').textContent = 'Checking for application updates…';
+  try {
+    const update = await window.inventory.checkAppUpdate();
+    $('install-app-update').hidden = !update.available;
+    $('app-update-status').textContent = !update.supported
+      ? update.message
+      : update.available
+        ? 'Version ' + update.version + ' is available. Updating will close and restart the app.'
+        : 'You are using the latest version.';
+    if (update.available) {
+      $('app-update-banner-text').textContent = 'WoW Addons ' + update.version + ' is available.';
+      $('app-update-banner').hidden = false;
+    } else $('app-update-banner').hidden = true;
+  } catch (e) {
+    $('app-update-status').textContent =
+      'Could not check for updates. Check your connection and try again.';
+    if (!background) error(e);
+  } finally {
+    checkingApplicationUpdate = false;
+    setAppUpdateCheckDisabled(false);
+  }
+}
+$('check-app-update').onclick = () => checkApplicationUpdate();
+$('dismiss-app-update').onclick = () => {
+  $('app-update-banner').hidden = true;
+};
+$('review-app-update').onclick = () => $('settings').click();
+$('install-app-update').onclick = () =>
+  run('Downloading application update…', async () => {
+    await window.inventory.installAppUpdate();
+  });
+window.inventory.onAppUpdateProgress(({ downloaded, total }) => {
+  $('busy-text').textContent = total
+    ? 'Downloading application update… ' +
+      Math.min(100, Math.round((downloaded / total) * 100)) +
+      '%'
+    : 'Downloading application update… ' + Math.round(downloaded / 1024 / 1024) + ' MB';
 });

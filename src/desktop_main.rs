@@ -1,4 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod app_update;
+#[cfg(windows)]
+mod portable_update;
 use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -158,15 +161,32 @@ fn test_browser_args() -> Option<String> {
 }
 
 fn main() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+    #[cfg(windows)]
+    if portable_update::helper_mode() {
+        return;
+    }
+    let builder = tauri::Builder::default();
+    #[cfg(any(debug_assertions, feature = "test-driver"))]
+    let isolated_test = std::env::var_os("WOW_ADDONS_TEST_DATA").is_some();
+    #[cfg(not(any(debug_assertions, feature = "test-driver")))]
+    let isolated_test = false;
+    let builder = if isolated_test {
+        builder
+    } else {
+        builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
             show_main(app)
         }))
+    };
+    builder
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(app_update::Updates::default())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
         .invoke_handler(tauri::generate_handler![
+            app_update::check_app_update,
+            app_update::install_app_update,
             inventory,
             desktop_settings,
             set_autostart
@@ -216,6 +236,8 @@ fn main() {
                 None => builder,
             };
             let window = builder.build()?;
+            #[cfg(windows)]
+            portable_update::startup_complete();
             #[cfg(any(debug_assertions, feature = "test-driver"))]
             if std::env::var_os("WOW_ADDONS_TEST_DATA").is_some() {
                 window.set_title("WoW Addons · automated verification")?;

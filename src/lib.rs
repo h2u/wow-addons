@@ -5,3 +5,7 @@ pub mod inventory;
 pub mod provider;
 
 pub mod migration;
+
+#[cfg(all(test, not(windows)))]
+#[allow(dead_code)]
+mod portable_update;
