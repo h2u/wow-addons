@@ -304,6 +304,13 @@
           Windows is tested end to end. macOS universal releases are available; Linux can be built
           from source.
         </p>
+        <p id="app-update-status" class="small" role="status">
+          Application updates are checked at startup.
+        </p>
+        <div class="about-links">
+          <button id="check-app-update" class="subtle">Check for Updates</button>
+          <button id="install-app-update" class="primary" hidden>Update and Restart</button>
+        </div>
         <div class="about-links">
           <button id="open-build-guide" class="subtle">
             <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Build from source</button
@@ -317,6 +324,13 @@
         </div>
       </section>
     </dialog>
+    <aside id="app-update-banner" class="app-update-banner" hidden aria-live="polite">
+      <span id="app-update-banner-text"></span>
+      <button id="review-app-update" class="subtle">View update</button>
+      <button id="dismiss-app-update" class="subtle" aria-label="Dismiss update notification">
+        Dismiss
+      </button>
+    </aside>
     <div id="drop-overlay" hidden>
       <span class="ph-icon ph-upload-simple" aria-hidden="true"></span>
       <h2>Drop an addon ZIP</h2>

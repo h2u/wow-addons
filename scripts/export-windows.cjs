@@ -19,6 +19,20 @@ const bundles = path.join(base, 'bundle', 'nsis'),
   installers = fs.readdirSync(bundles).filter((n) => n.endsWith('.exe'));
 if (installers.length !== 1) throw new Error('Expected one NSIS installer.');
 copy(path.join(bundles, installers[0]), name + '-setup.exe');
+copy(path.join(bundles, installers[0] + '.sig'), name + '-setup.exe.sig');
+require('node:child_process').execFileSync(
+  process.execPath,
+  [
+    path.join(root, 'node_modules/@tauri-apps/cli/tauri.js'),
+    'signer',
+    'sign',
+    '--app-version',
+    version,
+    path.join(out, name + '.exe'),
+  ],
+  { stdio: 'inherit' },
+);
+assets.push(name + '.exe.sig');
 fs.writeFileSync(
   path.join(out, 'SHA256SUMS.txt'),
   assets

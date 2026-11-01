@@ -112,3 +112,5 @@ Project code is [MIT licensed](LICENSE). [Phosphor Icons](https://phosphoricons.
 World of Warcraft and CurseForge belong to their respective owners. This independent project does not redistribute addon archives.
 
 Formatting uses Prettier and rustfmt; linting uses ESLint and Clippy. See [the contributor checks](CONTRIBUTING.md#formatting-and-linting).
+
+Application release builds check for updates at startup and in **Settings → About**. **Update and Restart** updates installed and portable Windows copies automatically; portable builds preserve the executable path. See [application updates](docs/application-updates.md) for signing, publishing, and recovery details.

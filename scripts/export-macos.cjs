@@ -17,3 +17,10 @@ const hash = crypto
   .digest('hex');
 fs.writeFileSync(path.join(out, 'SHA256SUMS-macos.txt'), hash + '  ' + name + '\n');
 console.log(name);
+
+const appDir = path.join(root, 'target/universal-apple-darwin/release/bundle/macos');
+const updates = fs.readdirSync(appDir).filter((f) => f.endsWith('.app.tar.gz'));
+if (updates.length !== 1) throw new Error('Expected one universal updater archive.');
+const updateName = 'WoW-Addons-' + version + '-macos-universal.app.tar.gz';
+fs.copyFileSync(path.join(appDir, updates[0]), path.join(out, updateName));
+fs.copyFileSync(path.join(appDir, updates[0] + '.sig'), path.join(out, updateName + '.sig'));

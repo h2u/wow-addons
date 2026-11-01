@@ -22,7 +22,7 @@ required-features = ["cli"]
 [features]
 default = []
 cli = []
-desktop = ["dep:tauri", "dep:tauri-build", "dep:rfd", "dep:keyring", "dep:file_icon_provider", "dep:tauri-plugin-autostart", "dep:tauri-plugin-single-instance"]
+desktop = ["dep:tauri", "dep:tauri-build", "dep:rfd", "dep:keyring", "dep:file_icon_provider", "dep:tauri-plugin-autostart", "dep:tauri-plugin-single-instance", "dep:tauri-plugin-updater"]
 test-driver = ["desktop"]
 
 [dependencies]
@@ -42,6 +42,7 @@ regex = "1"
 open = "5"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 tauri = { version = "2", optional = true, features = ["tray-icon"] }
+tauri-plugin-updater = { version = "2", optional = true }
 tauri-plugin-autostart = { version = "2", optional = true }
 tauri-plugin-single-instance = { version = "2", optional = true }
 rfd = { version = "0.15", optional = true, default-features = false, features = ["xdg-portal", "tokio"] }
@@ -49,7 +50,7 @@ rfd = { version = "0.15", optional = true, default-features = false, features = 
 [target.'cfg(windows)'.dependencies]
 windows-registry = "0.6"
 aes-gcm = "0.10"
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_System_Threading"] }
 keyring = { version = "3", optional = true, features = ["windows-native"] }
 file_icon_provider = { version = "1", optional = true }
 
