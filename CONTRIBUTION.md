@@ -118,7 +118,7 @@ The app starts at **0.1.0**. Direct pushes to `main` are not required for any re
 
 ### First release
 
-After the setup PR is merged, open **Actions → Release → Run workflow**, select branch **main**, and use **mode: initial**. The workflow reads the committed version, creates a `v0.1.0` tag and draft, and builds Windows x64 and macOS universal assets. It publishes only after both platforms succeed. It does not commit or push a version change to the protected branch.
+After the setup PR is merged, open **Actions → CI → Run workflow**, select branch **main**, and use **mode: initial**. The workflow reads the committed version, creates a `v0.1.0` tag and draft, and builds Windows x64 and macOS universal assets. It publishes only after both platforms succeed. It does not commit or push a version change to the protected branch.
 
 Before the first published stable release, pushes to `main` skip Release Please with an informational notice.
 
@@ -158,4 +158,21 @@ Every PR requires exactly one of these labels. Other descriptive labels are allo
 
 The **Release label** check rejects missing or conflicting release labels and titles that disagree with the label. Merge with **Squash and merge**, preserving the validated PR title. Release Please uses that conventional squash commit; maintenance changes are included in release notes and cause patch releases. Several PRs in one release use the highest requested bump. Generated release PRs receive the chore label and keep their chore release title.
 
-Maintainers: in **Settings → Rules → Rulesets**, protect main, require a pull request, enable required status checks and select **Release label** plus all three CI platform checks. Do not allow bypasses. In repository merge settings, allow only squash merging and use the PR title as the default squash commit title. The workflow alone does not prevent merging until the required check is enabled. For GitHub Actions bot PRs, run CI manually on the release branch and remove/re-add the chore label yourself to trigger PR policy. Alternatively use a GitHub App token whose events trigger workflows. Version override footers in PR bodies are rejected; express breaking changes through the major label and title.
+Maintainers: in **Settings → Rules → Rulesets**, protect main, require a pull request, enable required status checks and select **Release label**, **CI result** and all three CI platform checks. Do not allow bypasses. In repository merge settings, allow only squash merging and use the PR title as the default squash commit title. The workflow alone does not prevent merging until the required check is enabled. For GitHub Actions bot PRs, run CI manually on the release branch and remove/re-add the chore label yourself to trigger PR policy. Alternatively use a GitHub App token whose events trigger workflows. Version override footers in PR bodies are rejected; express breaking changes through the major label and title.
+
+## CI change detection and branch rules
+
+One CI workflow handles PR validation, merges to main and manual releases. PRs never create releases. Check changes compares the full PR diff against its merge base, or all commits in a push; renames and deletions are included.
+
+| Changed files                                                                                                              | Three-platform checks | Release preparation on main |
+| -------------------------------------------------------------------------------------------------------------------------- | --------------------- | --------------------------- |
+| Rust/frontend code, assets, capabilities, Tauri config, dependencies, packaging scripts                                    | Run                   | Run after checks pass       |
+| Tests, CI workflows/actions, lint/format configuration, release automation configuration                                   | Run                   | Skip                        |
+| README, CONTRIBUTION, CHANGELOG, docs/, LICENSE, .gitignore, .gitattributes, .editorconfig, CODEOWNERS, issue/PR templates | Skip                  | Skip                        |
+| Unknown new paths                                                                                                          | Run                   | Run (conservative default)  |
+
+Release preparation updates the release PR; binaries are built only when that release PR is merged (or an initial/retry release is explicitly requested). Manual **mode: check** forces validation only. Manual **initial/retry** forces checks before release preparation. The lightweight PR policy workflow still runs for documentation PRs and label changes.
+
+Do not add workflow-level path filters: required jobs must report a result. The platform jobs report skipped for documentation-only changes. **CI result** fails if change detection fails, a required platform fails, or checks are unexpectedly skipped.
+
+Import **.github/rulesets/main.json** in repository Settings → Rules → Rulesets. It requires PRs, squash merging, one approval, code-owner review, resolved conversations, Release label, CI result and all three platform checks. Replace the previous ruleset rather than leaving two conflicting versions active. The code-owner requirement takes effect after .github/CODEOWNERS is merged into main. The owner cannot approve their own PR; owner-authored PRs need another reviewer.
