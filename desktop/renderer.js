@@ -1,3 +1,4 @@
+document.addEventListener('contextmenu', (event) => event.preventDefault());
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) =>
   String(value ?? '').replace(
@@ -1245,3 +1246,121 @@ $('install-release').onclick = async () => {
 };
 $('open-build-guide').onclick = () => window.inventory.openAboutLink('buildGuide').catch(error);
 $('open-api-console').onclick = () => window.inventory.openAboutLink('apiConsole').catch(error);
+
+let addonListSelection = null;
+const listCheckboxes = () => [...$('list-entries').querySelectorAll('input[type="checkbox"]')];
+function updateListSelection() {
+  const count = listCheckboxes().filter((input) => input.checked).length;
+  $('list-selected-count').textContent = count + ' of ' + listCheckboxes().length + ' selected';
+  $('confirm-list').disabled = count === 0;
+}
+function openListSelection(mode, id, list) {
+  addonListSelection = { mode, id, document: list };
+  $('list-title').textContent = mode === 'export' ? 'Export addon list' : 'Import addon list';
+  $('list-description').textContent =
+    list.addons.length + ' addons for ' + list.flavor + '. Choose which addons to ' + mode + '.';
+  $('list-help').textContent =
+    mode === 'export'
+      ? 'Share the JSON file with a friend using the same WoW client. Addons without a source will need manual installation.'
+      : 'Selected addons will be downloaded into ' +
+        selected().installation.name +
+        '. Existing folders are backed up before replacement. A CurseForge API key is required. Known file versions are preserved; project links use the latest compatible release.';
+  $('confirm-list').hidden = false;
+  $('confirm-list').textContent = mode === 'export' ? 'Export selected' : 'Download and install';
+  $('list-selection-actions').hidden = false;
+  $('list-entries').replaceChildren(
+    ...list.addons.map((addon, index) => {
+      const label = document.createElement('label');
+      label.className = 'list-addon';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = true;
+      input.value = String(index);
+      const text = document.createElement('span');
+      text.textContent =
+        addon.name + ' · ' + addon.version + (addon.url ? '' : ' · Manual installation required');
+      label.append(input, text);
+      return label;
+    }),
+  );
+  updateListSelection();
+  // run() restores controls after the dialog opens.
+  $('confirm-list').dataset.preBusyDisabled = String(list.addons.length === 0);
+  $('list-dialog').showModal();
+}
+$('export-list').onclick = () =>
+  run('Reading addon list…', async () => {
+    const id = selected().id;
+    openListSelection('export', id, await window.inventory.addonList(id));
+  });
+$('import-list').onclick = () =>
+  run('Reading addon list…', async () => {
+    const id = selected().id;
+    const list = await window.inventory.chooseList(id);
+    if (list) openListSelection('import', id, list);
+  });
+$('list-entries').onchange = updateListSelection;
+for (const [id, checked] of [
+  ['list-select-all', true],
+  ['list-deselect-all', false],
+]) {
+  $(id).onclick = () => {
+    listCheckboxes().forEach((input) => {
+      input.checked = checked;
+    });
+    updateListSelection();
+  };
+}
+$('cancel-list').onclick = () => $('list-dialog').close();
+$('list-dialog').addEventListener('close', () => {
+  addonListSelection = null;
+});
+$('confirm-list').onclick = () => {
+  const pending = addonListSelection;
+  const indices = listCheckboxes()
+    .filter((input) => input.checked)
+    .map((input) => Number(input.value));
+  if (!pending || !indices.length) return;
+  if (pending.mode === 'export') {
+    run('Exporting addon list…', async () => {
+      const result = await window.inventory.exportList(pending.id, indices);
+      if (result) {
+        $('list-dialog').close();
+        notice('Exported ' + result.count + ' addons.');
+      }
+    });
+    return;
+  }
+  const list = {
+    ...pending.document,
+    addons: indices.map((index) => pending.document.addons[index]),
+  };
+  $('list-dialog').close();
+  run('Installing addon list…', async () => {
+    const result = await window.inventory.installList(pending.id, list);
+    state = result.state;
+    render();
+    if (result.failures.length) {
+      $('list-title').textContent = 'Import results';
+      $('list-description').textContent =
+        'Installed ' + result.installed + '. Could not install ' + result.failures.length + ':';
+      $('list-help').textContent =
+        'The remaining addons were not installed. You can import them again or install them manually.';
+      $('list-selection-actions').hidden = true;
+      $('list-entries').textContent = result.failures
+        .map((f) => f.name + ': ' + f.reason)
+        .join('\n');
+      $('confirm-list').hidden = true;
+      $('list-dialog').showModal();
+    } else notice('Installed ' + result.installed + ' addons.');
+  });
+};
+$('library-menu').addEventListener('beforetoggle', (event) => {
+  if (event.newState !== 'open') return;
+  const rect = $('library-more').getBoundingClientRect();
+  $('library-menu').style.left = Math.max(8, rect.right - 225) + 'px';
+  $('library-menu').style.top = rect.bottom + 4 + 'px';
+});
+$('library-menu').addEventListener('click', (event) => {
+  if (event.target.closest('button')) $('library-menu').hidePopover();
+});

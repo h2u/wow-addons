@@ -22,6 +22,10 @@ const listen = (name, callback) => {
 window.inventory = {
   onProgress: (callback) => listen('inventory:progress', callback),
   onDrop: (callback) => listen('inventory:drop', callback),
+  addonList: (id) => invoke('addon-list', id),
+  exportList: (id, indices) => invoke('export-list', id, indices),
+  chooseList: (id) => invoke('choose-list', id),
+  installList: (id, document) => invoke('install-list', id, document),
   load: () => invoke('load'),
   about: () => invoke('about'),
   openAboutLink: (name) => invoke('open-about-link', name),

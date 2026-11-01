@@ -52,12 +52,14 @@
             <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
             ><span>Check for Updates</span>
           </button>
-          <button id="rescan" class="secondary">
-            <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
-            ><span>Rescan Folders</span>
-          </button>
-          <button id="columns" class="secondary">
-            <span class="ph-icon ph-columns" aria-hidden="true"></span><span>Columns</span>
+          <button
+            id="library-more"
+            class="secondary"
+            popovertarget="library-menu"
+            aria-label="More library actions"
+            title="More actions"
+          >
+            <span class="ph-icon ph-dots-three-vertical" aria-hidden="true"></span>
           </button>
         </div>
         <div class="inventory-meta">
@@ -321,6 +323,40 @@
         <span class="ph-icon ph-trash" aria-hidden="true"></span>Remove
       </button>
     </div>
+    <div id="library-menu" class="addon-menu" popover>
+      <button id="rescan">
+        <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Rescan Folders
+      </button>
+      <button id="columns">
+        <span class="ph-icon ph-columns" aria-hidden="true"></span>Columns
+      </button>
+      <hr />
+      <button id="import-list">
+        <span class="ph-icon ph-arrow-down" aria-hidden="true"></span>Import list
+      </button>
+      <button id="export-list">
+        <span class="ph-icon ph-arrow-up" aria-hidden="true"></span>Export list
+      </button>
+    </div>
+    <dialog id="list-dialog">
+      <h2 id="list-title">Import addon list</h2>
+      <p id="list-description"></p>
+      <p id="list-help">
+        Existing addons will be replaced with backups. Entries without a source need manual
+        installation. A CurseForge API key is required. Known file versions are preserved; project
+        links use the latest compatible release.
+      </p>
+      <div id="list-selection-actions" class="list-selection-actions">
+        <button id="list-select-all" class="subtle">Select all</button>
+        <button id="list-deselect-all" class="subtle">Deselect all</button>
+        <span id="list-selected-count" role="status" aria-live="polite"></span>
+      </div>
+      <div id="list-entries"></div>
+      <div class="dialog-footer">
+        <button id="cancel-list" class="subtle">Cancel</button>
+        <button id="confirm-list" class="primary">Download and install</button>
+      </div>
+    </dialog>
     <dialog id="import-dialog">
       <form method="dialog">
         <button class="close" aria-label="Cancel">
