@@ -1,0 +1,41 @@
+# Adapted from github/gitignore: Node.gitignore and Rust.gitignore.
+# https://github.com/github/gitignore/blob/main/Node.gitignore
+# https://github.com/github/gitignore/blob/main/Rust.gitignore
+node_modules/
+/target/
+/gen/
+/bin/
+/dist/
+/out/
+/.tools/
+/coverage/
+/.nyc_output/
+*.lcov
+*.log
+*.pid
+*.pid.lock
+report.[0-9]*.[0-9]*.[0-9]*.json
+.npm/
+.cache/
+*.tsbuildinfo
+**/*.rs.bk
+*.pdb
+rustc-ice-*.txt
+**/mutants.out*/
+build/Release/
+# Keep Cargo.lock, package-lock.json and build/icon.* in version control.
+.env
+.env.*
+!.env.example
+credentials.json
+credentials.json.tmp
+inventory.json
+/cache/
+/archives/
+/backups/
+*-api-response.json
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
