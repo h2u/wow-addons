@@ -145,3 +145,17 @@ Native UI tests currently use `windows-2022` because of the documented [WebView2
 ## Why no Docker?
 
 The app uses native windows, the OS WebView, local game folders and the OS credential store. Docker adds display/filesystem setup and cannot replace native Windows/macOS packaging. Use the documented toolchains and CI matrix.
+
+### Required release label
+
+Every PR requires exactly one of these labels. Other descriptive labels are allowed.
+
+| Label | PR title                                   | Version change from 0.1.0 |
+| ----- | ------------------------------------------ | ------------------------- |
+| major | `feat!: description`                       | 1.0.0                     |
+| minor | `feat: description`                        | 0.2.0                     |
+| chore | `chore: description` or `fix: description` | 0.1.1                     |
+
+The **Release label** check rejects missing or conflicting release labels and titles that disagree with the label. Merge with **Squash and merge**, preserving the validated PR title. Release Please uses that conventional squash commit; maintenance changes are included in release notes and cause patch releases. Several PRs in one release use the highest requested bump. Generated release PRs receive the chore label and keep their chore release title.
+
+Maintainers: in **Settings → Rules → Rulesets**, protect main, require a pull request, enable required status checks and select **Release label** plus all three CI platform checks. Do not allow bypasses. In repository merge settings, allow only squash merging and use the PR title as the default squash commit title. The workflow alone does not prevent merging until the required check is enabled. For GitHub Actions bot PRs, run CI manually on the release branch and remove/re-add the chore label yourself to trigger PR policy. Alternatively use a GitHub App token whose events trigger workflows. Version override footers in PR bodies are rejected; express breaking changes through the major label and title.

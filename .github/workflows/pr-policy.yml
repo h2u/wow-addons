@@ -1,0 +1,38 @@
+name: PR policy
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, labeled, unlabeled, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: pr-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  release-label:
+    name: Release label
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: context.issue.number
+            });
+            const prefixes = {
+              major: /^feat(?:\([^\r\n)]+\))?!: .+$/,
+              minor: /^feat(?:\([^\r\n)]+\))?: .+$/,
+              chore: /^(?:chore|fix)(?:\([^\r\n)]+\))?: .+$/
+            };
+            const body = pr.body || '';
+            if (/Release-As:|BEGIN_COMMIT_OVERRIDE|BREAKING[ -]CHANGE:/i.test(body)) {
+              core.setFailed('Use the release label and title instead of version overrides in the PR body.');
+              return;
+            }
+            const selected = Object.keys(prefixes).filter(name => pr.labels.some(label => label.name === name));
+            if (selected.length !== 1) {
+              core.setFailed('Select exactly one release label: major, minor, or chore.');
+            } else if (!prefixes[selected[0]].test(pr.title)) {
+              core.setFailed('Title must match label: major = feat!: ..., minor = feat: ..., chore = chore: ... or fix: ...');
+            }
