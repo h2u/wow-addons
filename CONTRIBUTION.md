@@ -24,34 +24,53 @@ The first start compiles the native backend and opens a development window. Rust
 
 ## Architecture
 
-| Path | Responsibility |
-| --- | --- |
-| `src/desktop_main.rs` | Tauri window, event bridge and background command dispatch |
-| `src/backend.rs` | Serialized application service, profiles, settings, cache and package operations |
-| `src/inventory.rs` | Client discovery and TOC scanning |
-| `src/archive.rs` | ZIP paths, compatibility, backups, staging and rollback |
-| `src/provider.rs` | CurseForge API, releases, downloads, hashes and update assessment |
-| `src/grouping.rs` | Package ownership and manifests |
-| `src/images.rs` | Local image decoding, including TGA and BLP2 DXT |
-| `src/migration.rs` | One-time native Windows credential migration |
-| `desktop/bridge.js` | Narrow Tauri command API for the renderer |
-| `desktop/renderer.js`, `index.html`, `styles.css` | UI |
-| `desktop/grouping.js`, `bundles.json` | Display grouping and known bundle layouts |
-| `capabilities/`, `tauri*.conf.json` | Native permissions and packaging |
-| `tests/`, inline Rust tests | Frontend and backend verification |
+| Path                                              | Responsibility                                                                   |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `src/desktop_main.rs`                             | Tauri window, event bridge and background command dispatch                       |
+| `src/backend.rs`                                  | Serialized application service, profiles, settings, cache and package operations |
+| `src/inventory.rs`                                | Client discovery and TOC scanning                                                |
+| `src/archive.rs`                                  | ZIP paths, compatibility, backups, staging and rollback                          |
+| `src/provider.rs`                                 | CurseForge API, releases, downloads, hashes and update assessment                |
+| `src/grouping.rs`                                 | Package ownership and manifests                                                  |
+| `src/images.rs`                                   | Local image decoding, including TGA and BLP2 DXT                                 |
+| `src/migration.rs`                                | One-time native Windows credential migration                                     |
+| `desktop/bridge.js`                               | Narrow Tauri command API for the renderer                                        |
+| `desktop/renderer.js`, `index.html`, `styles.css` | UI                                                                               |
+| `desktop/grouping.js`, `bundles.json`             | Display grouping and known bundle layouts                                        |
+| `capabilities/`, `tauri*.conf.json`               | Native permissions and packaging                                                 |
+| `tests/`, inline Rust tests                       | Frontend and backend verification                                                |
 
 All operations use Rust directly; there is no sidecar executable or Electron runtime. The optional `wow-addons-core` CLI is a debugging tool that calls the same library.
 
 The frontend cannot fetch arbitrary URLs or use a filesystem plugin. The native service validates commands, URL hosts, paths and installer plans. Navigation is restricted to the local UI. Preserve this boundary when adding features.
 
-## Checks
+## Formatting and linting
+
+Use **rustfmt** for Rust layout and **Clippy** for Rust diagnostics. Prettier formats JavaScript, HTML, CSS, JSON, YAML and Markdown; ESLint checks JavaScript correctness. These tools are not bundled with the application.
 
 ```sh
+rustup component add rustfmt clippy
+npm run format
+npm run format:rust
+```
+
+Before opening a PR, run:
+
+```sh
+npm run format:check
+npm run lint
 npm run check
 npm test
+cargo fmt --check
+npm run lint:rust
 cargo test --locked --lib
-cargo check --locked --features desktop --bin wow-addons
 ```
+
+`npm run lint:fix` applies safe ESLint fixes; review the diff afterward. `.editorconfig`, `.prettierrc.json`, `eslint.config.cjs` and `rustfmt.toml` define the shared style. Rust uses four-space indentation; frontend code uses two spaces. Use multiline object fields in long `json!` macros, which rustfmt cannot lay out automatically.
+
+Editor integrations: use rust-analyzer for Rust, and Prettier and ESLint for frontend code. Enable format on save locally. CI rejects formatting differences and lint warnings. Generated outputs, dependencies and vendored SVGs are excluded from formatting.
+
+## Tests
 
 Do not weaken archive validation to accommodate an addon. Normalize legitimate input, then retain traversal, symlink, collision, size and compatibility checks. Use synthetic clients under temporary directories for installation/removal tests.
 
@@ -72,7 +91,7 @@ The test creates a separate profile and game, tests install/reinstall/remove, an
 npm run dist
 ```
 
-Build on the target OS and architecture. Outputs are in `target/release/` and `target/release/bundle/`. Windows NSIS installs WebView2 when needed; a portable EXE requires it already installed. macOS and Linux builds are supported from source, with full game-management validation still pending.
+Build on the target OS and architecture. Outputs are in `target/release/` and `target/release/bundle/`. Windows NSIS installs WebView2 when needed; a portable EXE requires it already installed. The release workflow builds a universal macOS DMG. Linux can be built from source; complete game-management testing on macOS/Linux is still pending.
 
 `npm run build:icons` regenerates committed packaging icons from `desktop/assets/app-icon.png`. Preserve the license and revision of vendored Phosphor SVGs.
 
@@ -95,14 +114,65 @@ Never commit credentials, API response captures, caches, game data, ZIPs, compil
 
 ## Releases
 
-The initial app version is **0.1.0**. Release Please maintains a release PR with the next SemVer, changelog and synchronized versions in npm, Cargo and Tauri configuration. Normal feature PRs do not edit versions manually.
+The app starts at **0.1.0**. Direct pushes to `main` are not required for any release step.
 
-Merge the release PR when ready. The same workflow creates a tag and draft release, builds the tagged source on Windows x64, attaches the installer, portable EXE and SHA256 checksums, and publishes only after upload succeeds. It does not depend on a tag event emitted by `GITHUB_TOKEN`.
+### First release
 
-One-time repository setup: **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests**. No CurseForge secret or release PAT is required. If protected branches require CI on bot-created PRs, manually run CI on the release PR branch, or configure a scoped GitHub App token to trigger PR checks.
+After the setup PR is merged, open **Actions → CI → Run workflow**, select branch **main**, and use **mode: initial**. The workflow reads the committed version, creates a `v0.1.0` tag and draft, and builds Windows x64 and macOS universal assets. It publishes only after both platforms succeed. It does not commit or push a version change to the protected branch.
 
-A failed build leaves the release as a draft. Use **Release → Run workflow** with its existing `vX.Y.Z` tag to retry the same source. A source correction needs a new release; never move a published tag. Signing/notarization and publishing macOS/Linux assets are future work.
+Before the first published stable release, pushes to `main` skip Release Please with an informational notice.
+
+### Subsequent releases
+
+Release Please collects Conventional Commits after the published baseline and opens a release PR with the next SemVer, changelog and synchronized npm/Cargo/Tauri versions. Merge that PR to trigger both platform builds. Normal feature PRs do not edit versions manually.
+
+Enable **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests** before using release PRs. The first manual release does not need this setting. No CurseForge secret or release PAT is required.
+
+If protected branches require CI on bot-created PRs, manually run CI on the release PR branch, or configure a scoped GitHub App token whose PR events trigger CI.
+
+### Failed builds
+
+A failed build leaves a draft. Use **Run workflow → mode: retry → tag: vX.Y.Z** to retry the tagged source. A source correction needs a new version through a PR; do not move an existing tag.
+
+Windows assets contain a portable EXE, an NSIS installer and SHA256 checksums. macOS assets contain a universal DMG for Intel and Apple Silicon and a separate checksum. The Mac package is ad-hoc signed, without Apple notarization; full game-management testing on a Mac is still needed.
+
+Linux remains a compile/test target and an optional source build. WoW has no official native Linux client; Linux release assets are not published.
+
+### Windows UI runner
+
+Native UI tests currently use `windows-2022` because of the documented [WebView2 automation regression on the Windows 2025 image](https://github.com/actions/runner-images/issues/14738). The setup action checks/installs WebView2. Tests pass debug flags through the SDK only in a debug/test build, capture startup output, and upload `ui-startup.json` on failure. Production builds do not enable the test hooks.
 
 ## Why no Docker?
 
 The app uses native windows, the OS WebView, local game folders and the OS credential store. Docker adds display/filesystem setup and cannot replace native Windows/macOS packaging. Use the documented toolchains and CI matrix.
+
+### Required release label
+
+Every PR requires exactly one of these labels. Other descriptive labels are allowed.
+
+| Label | PR title                                   | Version change from 0.1.0 |
+| ----- | ------------------------------------------ | ------------------------- |
+| major | `feat!: description`                       | 1.0.0                     |
+| minor | `feat: description`                        | 0.2.0                     |
+| chore | `chore: description` or `fix: description` | 0.1.1                     |
+
+The **Release label** check rejects missing or conflicting release labels and titles that disagree with the label. Merge with **Squash and merge**, preserving the validated PR title. Release Please uses that conventional squash commit; maintenance changes are included in release notes and cause patch releases. Several PRs in one release use the highest requested bump. Generated release PRs receive the chore label and keep their chore release title.
+
+Maintainers: in **Settings → Rules → Rulesets**, protect main, require a pull request, enable required status checks and select **Release label**, **CI result** and all three CI platform checks. Do not allow bypasses. In repository merge settings, allow only squash merging and use the PR title as the default squash commit title. The workflow alone does not prevent merging until the required check is enabled. For GitHub Actions bot PRs, run CI manually on the release branch and remove/re-add the chore label yourself to trigger PR policy. Alternatively use a GitHub App token whose events trigger workflows. Version override footers in PR bodies are rejected; express breaking changes through the major label and title.
+
+## CI change detection and branch rules
+
+One CI workflow handles PR validation, merges to main and manual releases. PRs never create releases. Check changes compares the full PR diff against its merge base, or all commits in a push; renames and deletions are included.
+
+| Changed files                                                                                                              | Three-platform checks | Release preparation on main |
+| -------------------------------------------------------------------------------------------------------------------------- | --------------------- | --------------------------- |
+| Rust/frontend code, assets, capabilities, Tauri config, dependencies, packaging scripts                                    | Run                   | Run after checks pass       |
+| Tests, CI workflows/actions, lint/format configuration, release automation configuration                                   | Run                   | Skip                        |
+| README, CONTRIBUTION, CHANGELOG, docs/, LICENSE, .gitignore, .gitattributes, .editorconfig, CODEOWNERS, issue/PR templates | Skip                  | Skip                        |
+| Unknown new paths                                                                                                          | Run                   | Run (conservative default)  |
+
+Release preparation updates the release PR; binaries are built only when that release PR is merged (or an initial/retry release is explicitly requested). Manual **mode: check** forces validation only. Manual **initial/retry** forces checks before release preparation. The lightweight PR policy workflow still runs for documentation PRs and label changes.
+
+Do not add workflow-level path filters: required jobs must report a result. The platform jobs report skipped for documentation-only changes. **CI result** fails if change detection fails, a required platform fails, or checks are unexpectedly skipped.
+
+Import **.github/rulesets/main.json** in repository Settings → Rules → Rulesets. It requires PRs, squash merging, one approval, code-owner review, resolved conversations, Release label, CI result and all three platform checks. Replace the previous ruleset rather than leaving two conflicting versions active. The code-owner requirement takes effect after .github/CODEOWNERS is merged into main. The owner cannot approve their own PR; owner-authored PRs need another reviewer.

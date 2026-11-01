@@ -23,6 +23,22 @@ async fn inventory(
     .await
     .map_err(|e| format!("Application task failed: {e}"))?
 }
+#[cfg(all(windows, any(debug_assertions, feature = "test-driver")))]
+fn test_browser_args() -> Option<String> {
+    std::env::var_os("WOW_ADDONS_TEST_DATA")?;
+    let port: u16 = std::env::var("WOW_ADDONS_TEST_DEBUG_PORT")
+        .ok()?
+        .parse()
+        .ok()?;
+    let mut args = format!(
+        "--remote-debugging-address=127.0.0.1 --remote-debugging-port={port} --no-first-run",
+    );
+    if std::env::var_os("CI").is_some() {
+        args.push_str(" --disable-gpu");
+    }
+    Some(args)
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![inventory])
@@ -45,15 +61,20 @@ fn main() {
             )
             .map_err(std::io::Error::other)?;
             app.manage(Arc::new(Mutex::new(service)));
-            let window =
+            let builder =
                 tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
                     .data_directory(webview_dir)
                     .on_navigation(|url| {
                         url.scheme() == "tauri"
                             || (matches!(url.scheme(), "http" | "https")
                                 && url.host_str() == Some("tauri.localhost"))
-                    })
-                    .build()?;
+                    });
+            #[cfg(all(windows, any(debug_assertions, feature = "test-driver")))]
+            let builder = match test_browser_args() {
+                Some(args) => builder.additional_browser_args(&args),
+                None => builder,
+            };
+            let window = builder.build()?;
             #[cfg(any(debug_assertions, feature = "test-driver"))]
             if std::env::var_os("WOW_ADDONS_TEST_DATA").is_some() {
                 window.set_title("WoW Addons · automated verification")?;

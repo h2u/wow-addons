@@ -24,7 +24,21 @@ const COLUMNS: [&str; 7] = [
     "toc",
 ];
 pub fn defaults() -> Value {
-    json!({"schemaVersion":1,"games":[],"selectedId":null,"columns":["addon","version"],"columnOrder":COLUMNS,"bindings":{},"packages":{},"updates":{},"archives":{},"sort":{"key":"addon","direction":1}})
+    json!({
+        "schemaVersion": 1,
+        "games": [],
+        "selectedId": null,
+        "columns": ["addon","version"],
+        "columnOrder": COLUMNS,
+        "bindings": {},
+        "packages": {},
+        "updates": {},
+        "archives": {},
+        "sort": {
+            "key": "addon",
+            "direction": 1,
+        },
+    })
 }
 fn folder_name(s: &str) -> bool {
     !s.is_empty() && s != "." && s != ".." && !s.contains(['/', '\\', ':'])
@@ -265,7 +279,14 @@ impl Service {
         if !Self::valid_project(p) {
             return Err("Invalid CurseForge project metadata.".into());
         }
-        self.projects[p["id"].to_string()] = json!({"id":p["id"],"gameId":1,"name":p["name"],"slug":p["slug"],"links":p["links"],"logo":p["logo"]});
+        self.projects[p["id"].to_string()] = json!({
+            "id": p["id"],
+            "gameId": 1,
+            "name": p["name"],
+            "slug": p["slug"],
+            "links": p["links"],
+            "logo": p["logo"],
+        });
         atomic(
             &self.dir.join("cache/projects.json"),
             &serde_json::to_vec(&self.projects).unwrap(),
@@ -320,7 +341,12 @@ impl Service {
         }
         let before = grouping::identity(group, &self.state["bindings"][id]);
         let folder = text(group, "folder");
-        self.state["bindings"][id][folder] = json!({"url":project["links"]["websiteUrl"],"slug":project["slug"],"projectId":project["id"],"verified":true});
+        self.state["bindings"][id][folder] = json!({
+            "url": project["links"]["websiteUrl"],
+            "slug": project["slug"],
+            "projectId": project["id"],
+            "verified": true,
+        });
         let after = grouping::identity(group, &self.state["bindings"][id]);
         let from = self.dir.join(format!("cache/icons/{before}.png"));
         let to = self.dir.join(format!("cache/icons/{after}.png"));
@@ -334,6 +360,7 @@ impl Service {
         let groups = self.groups(id)?;
         let mut report = json!({"downloaded":0,"local":0,"cached":0,"missing":[],"errors":[]});
         self.stage("Linking CurseForge projects…");
+        let dbm_prefix = regex::Regex::new(r"^<DBM [^>]+>\s*").unwrap();
         for group in groups {
             if folders.is_some_and(|fs| {
                 !list(&group["members"])
@@ -375,10 +402,7 @@ impl Service {
                 let mut project = project;
                 if project.is_none() && !self.key.is_empty() {
                     let raw = text(&group, "name");
-                    let search = regex::Regex::new(r"^<DBM [^>]+>\s*")
-                        .unwrap()
-                        .replace(raw, "")
-                        .to_string();
+                    let search = dbm_prefix.replace(raw, "").to_string();
                     let route = format!(
                         "mods/search?gameId=1&pageSize=50&searchFilter={}",
                         url::form_urlencoded::byte_serialize(search.as_bytes()).collect::<String>()
@@ -430,7 +454,13 @@ impl Service {
                 let png = images::png(&bytes, "").ok_or("Icon could not be decoded.")?;
                 let identity = grouping::identity(&group, &self.state["bindings"][id]);
                 atomic(&self.dir.join(format!("cache/icons/{identity}.png")), &png)?;
-                self.index["entries"][&identity] = json!({"source":"curseforge","projectId":project["id"],"name":project["name"],"slug":project["slug"],"cachedAt":now()});
+                self.index["entries"][&identity] = json!({
+                    "source": "curseforge",
+                    "projectId": project["id"],
+                    "name": project["name"],
+                    "slug": project["slug"],
+                    "cachedAt": now(),
+                });
                 Ok(true)
             })();
             match fetched {
@@ -539,9 +569,12 @@ impl Service {
             if self.remote.len() > 20 {
                 self.remote.remove(0);
             }
-            Ok(
-                json!({"blocked":true,"downloadPage":selected["downloadPage"],"source":selected["source"],"reason":"Automatic download needs browser interaction. Open the download page and import its ZIP."}),
-            )
+            Ok(json!({
+                "blocked": true,
+                "downloadPage": selected["downloadPage"],
+                "source": selected["source"],
+                "reason": "Automatic download needs browser interaction. Open the download page and import its ZIP.",
+            }))
         }
     }
     fn install(&mut self, token: &str) -> Result<Value> {
@@ -616,8 +649,22 @@ impl Service {
                 .find(|v| v["projectId"] == p.source["id"])
                 .ok_or("Installed package record missing.")?;
             let primary = text(&record, "primary");
-            self.state["bindings"][&p.id][primary] = json!({"url":p.source["url"],"slug":p.source["slug"],"projectId":p.source["id"],"verified":true});
-            self.state["updates"][&p.id][primary] = json!({"status":if p.source["isLatestStable"]==true{"current"}else{"unchecked"},"checkedAt":now(),"latestVersion":p.source["fileVersion"],"fileId":p.source["fileId"],"projectId":p.source["id"],"projectUrl":p.source["url"],"downloadPage":format!("{}/download/{}",text(&p.source,"url"),p.source["fileId"]),"reason":"Installed file recorded. Check updates to compare with stable."});
+            self.state["bindings"][&p.id][primary] = json!({
+                "url": p.source["url"],
+                "slug": p.source["slug"],
+                "projectId": p.source["id"],
+                "verified": true,
+            });
+            self.state["updates"][&p.id][primary] = json!({
+                "status": if p.source["isLatestStable"]==true{"current"}else{"unchecked"},
+                "checkedAt": now(),
+                "latestVersion": p.source["fileVersion"],
+                "fileId": p.source["fileId"],
+                "projectId": p.source["id"],
+                "projectUrl": p.source["url"],
+                "downloadPage": format!("{}/download/{}",text(&p.source,"url"),p.source["fileId"]),
+                "reason": "Installed file recorded. Check updates to compare with stable.",
+            });
         }
         self.persist()?;
         let folders: Vec<String> = names
@@ -652,9 +699,11 @@ impl Service {
                     }
                 }
                 let Some(url) = grouping::link(group, &self.state["bindings"][id]) else {
-                    return Ok(
-                        json!({"status":"unlinked","checkedAt":now(),"reason":"No CurseForge project URL is linked."}),
-                    );
+                    return Ok(json!({
+                        "status": "unlinked",
+                        "checkedAt": now(),
+                        "reason": "No CurseForge project URL is linked.",
+                    }));
                 };
                 let project = self.provider.project(&url, &self.key)?;
                 self.cache_project(&project)?;
@@ -734,13 +783,23 @@ impl Service {
             self.state["updates"][id][text(group, "folder")] = result;
         }
         self.persist()?;
-        Ok(
-            json!({"state":self.state,"summary":{"checked":groups.len(),"available":counts[0],"unverified":counts[1],"errors":counts[2]}}),
-        )
+        Ok(json!({
+            "state": self.state,
+            "summary": {
+                "checked": groups.len(),
+                "available": counts[0],
+                "unverified": counts[1],
+                "errors": counts[2],
+            },
+        }))
     }
 
     fn key_status(&self) -> Value {
-        json!({"configured":!self.key.is_empty(),"saved":self.key_saved||self.dir.join("credentials.json").exists(),"migrationRequired":!self.key_saved&&self.dir.join("credentials.json").exists()})
+        json!({
+            "configured": !self.key.is_empty(),
+            "saved": self.key_saved||self.dir.join("credentials.json").exists(),
+            "migrationRequired": !self.key_saved&&self.dir.join("credentials.json").exists(),
+        })
     }
     fn save_key(&mut self, value: &str) -> Result<Value> {
         let candidate = value.trim();
@@ -862,17 +921,21 @@ impl Service {
                 .ok_or("Missing command argument.".into())
         };
         if method == "load" {
-            return Ok(
-                json!({"state":self.state,"error":self.load_error,"cachePath":self.dir.join("inventory.json")}),
-            );
+            return Ok(json!({
+                "state": self.state,
+                "error": self.load_error,
+                "cachePath": self.dir.join("inventory.json"),
+            }));
         }
         if let Some(ref e) = self.load_error {
             return Err(e.clone());
         }
         match method {
-            "about" => Ok(
-                json!({"version":env!("CARGO_PKG_VERSION"),"repository":"https://github.com/h2u/wow-addons","support":"https://buymeacoffee.com/edgars.spirins"}),
-            ),
+            "about" => Ok(json!({
+                "version": env!("CARGO_PKG_VERSION"),
+                "repository": "https://github.com/h2u/wow-addons",
+                "support": "https://buymeacoffee.com/edgars.spirins",
+            })),
             "open-about-link" => {
                 let url = match arg(0)?.as_str() {
                     "repository" => "https://github.com/h2u/wow-addons",
@@ -1127,9 +1190,9 @@ impl Service {
                     .set_title("Select a WoW client or World of Warcraft folder")
                     .pick_folder()
             };
-            return Ok(chosen
+            Ok(chosen
                 .map(|p| json!(p.to_string_lossy()))
-                .unwrap_or(Value::Null));
+                .unwrap_or(Value::Null))
         }
         #[cfg(not(feature = "desktop"))]
         {

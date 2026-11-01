@@ -8,14 +8,16 @@ A compact, ad-free World of Warcraft addon manager built with **Rust and Tauri 2
 
 ## Install
 
-Windows x64 is the currently tested release platform. From [Releases](https://github.com/h2u/wow-addons/releases), download either:
+Windows x64 is tested end to end. The release workflow also builds a universal macOS DMG. From [Releases](https://github.com/h2u/wow-addons/releases), choose the appropriate file:
 
 - `WoW-Addons-<version>-windows-x64-setup.exe`: installer, including WebView2 setup when needed.
 - `WoW-Addons-<version>-windows-x64.exe`: portable app, requiring [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) already installed.
 
+On macOS, download the universal DMG for Apple Silicon and Intel. Mac builds are not yet Apple-notarized.
+
 No Node.js or Rust installation is needed to run a release. Packages are currently unsigned. Until the first release is published, use the source build below.
 
-Tauri uses the system WebView rather than bundling a browser engine. There is no Electron or Node.js runtime in the app. macOS and Linux can be built from source; their complete game-management flow has not been verified yet.
+Tauri uses the system WebView rather than bundling a browser engine. There is no Electron or Node.js runtime in the app. macOS receives a universal release build, with complete game-management testing still pending. Linux remains a source build: WoW has no official native Linux client. See [Blizzard support](https://us.support.blizzard.com/en/article/11571).
 
 ## Getting started
 
@@ -54,11 +56,11 @@ Automatic CurseForge release selection currently supports Retail, Forever and Cl
 
 ## Local data
 
-| System | Default directory |
-| --- | --- |
-| Windows | `%APPDATA%/wow-addons` |
-| macOS | `~/Library/Application Support/wow-addons` |
-| Linux | `~/.config/wow-addons` or `$XDG_CONFIG_HOME/wow-addons` |
+| System  | Default directory                                       |
+| ------- | ------------------------------------------------------- |
+| Windows | `%APPDATA%/wow-addons`                                  |
+| macOS   | `~/Library/Application Support/wow-addons`              |
+| Linux   | `~/.config/wow-addons` or `$XDG_CONFIG_HOME/wow-addons` |
 
 Profiles, inventory, links, package ownership and table preferences live in `inventory.json`. Icons and project metadata are in `cache/`, ZIP snapshots in `archives/`, and replaced/removed folders in `backups/`. WebView data is isolated in `webview/`. API keys live in the OS credential store.
 
@@ -93,10 +95,12 @@ The executable appears in `target/release/`; installer bundles appear in `target
 
 See [CONTRIBUTION.md](CONTRIBUTION.md) for architecture, tests and PR guidelines. The UI is plain HTML/CSS/JavaScript; all filesystem, API, cache, credential and installation operations run in Rust.
 
-GitHub Actions checks native compilation on Windows, macOS and Linux. Release Please groups Conventional Commits into a release PR, updates the three-part SemVer and changelog, and starts with **0.1.0**. Merging that PR builds Windows assets and publishes the release only after successful upload.
+GitHub Actions checks native compilation on Windows, macOS and Linux. The first **0.1.0** release is manual: **Actions → CI → Run workflow → mode: initial**, on branch **main**. Later, Release Please groups Conventional Commits into a release PR and updates the SemVer and changelog. Merging that PR builds Windows and macOS assets and publishes only after both succeed. No direct push to the protected branch is needed.
 
 ## License and credits
 
 Project code is [MIT licensed](LICENSE). [Phosphor Icons](https://phosphoricons.com/) SVGs include their MIT license and source revision. The application logo was supplied for this project.
 
 World of Warcraft and CurseForge belong to their respective owners. This independent project does not redistribute addon archives.
+
+Formatting uses Prettier and rustfmt; linting uses ESLint and Clippy. See [the contributor checks](CONTRIBUTION.md#formatting-and-linting).

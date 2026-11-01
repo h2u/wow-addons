@@ -1,0 +1,29 @@
+name: Prepare Windows UI
+description: Ensure WebView2 is available before native UI tests.
+runs:
+  using: composite
+  steps:
+    - name: Check WebView2 Runtime
+      shell: pwsh
+      run: |-
+        $program86 = [Environment]::GetFolderPath('ProgramFilesX86')
+        $roots = @(
+          "$program86\Microsoft\EdgeWebView\Application",
+          "$env:ProgramFiles\Microsoft\EdgeWebView\Application",
+          "$env:LOCALAPPDATA\Microsoft\EdgeWebView\Application"
+        )
+        $runtime = @($roots | ForEach-Object {
+          Get-ChildItem -Path "$_\*\msedgewebview2.exe" -File -ErrorAction SilentlyContinue
+        }) | Select-Object -First 1
+        if (!$runtime) {
+          $installer = Join-Path $env:RUNNER_TEMP 'MicrosoftEdgeWebview2Setup.exe'
+          Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $installer
+          $install = Start-Process -FilePath $installer -ArgumentList '/silent','/install' -Wait -PassThru -WindowStyle Hidden
+          if ($install.ExitCode -notin @(0, 3010)) { throw "WebView2 setup failed: $($install.ExitCode)" }
+          $runtime = @($roots | ForEach-Object {
+            Get-ChildItem -Path "$_\*\msedgewebview2.exe" -File -ErrorAction SilentlyContinue
+          }) | Select-Object -First 1
+        }
+        if (!$runtime) { throw 'WebView2 Runtime was not found after setup.' }
+        Write-Host "WebView2 $($runtime.VersionInfo.ProductVersion)"
+        Write-Host "Runtime: $($runtime.FullName)"

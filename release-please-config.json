@@ -24,7 +24,25 @@
           "path": "tauri.conf.json",
           "jsonpath": "$.version"
         }
+      ],
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Features",
+          "hidden": false
+        },
+        {
+          "type": "fix",
+          "section": "Fixes",
+          "hidden": false
+        },
+        {
+          "type": "chore",
+          "section": "Maintenance",
+          "hidden": false
+        }
       ]
     }
-  }
+  },
+  "extra-label": "chore"
 }

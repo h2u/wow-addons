@@ -1,11 +1,5 @@
 [
-  [
-    "Bagnon",
-    "BagBrother",
-    "Bagnon_Bank",
-    "Bagnon_Config",
-    "Bagnon_GuildBank"
-  ],
+  ["Bagnon", "BagBrother", "Bagnon_Bank", "Bagnon_Config", "Bagnon_GuildBank"],
   [
     "AtlasLootClassic",
     "AtlasBIStooltips",
@@ -37,10 +31,5 @@
     "Details_TinyThreat",
     "Details_Vanguard"
   ],
-  [
-    "TipTac",
-    "TipTacItemRef",
-    "TipTacOptions",
-    "TipTacTalents"
-  ]
+  ["TipTac", "TipTacItemRef", "TipTacOptions", "TipTacTalents"]
 ]

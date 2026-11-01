@@ -23,9 +23,23 @@
     "test": "node scripts/test.cjs",
     "test:ui": "node scripts/smoke.cjs",
     "test:live": "node scripts/downgrade-smoke.cjs",
-    "build:icons": "tauri icon desktop/assets/app-icon.png --output build"
+    "build:icons": "tauri icon desktop/assets/app-icon.png --output build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "format:rust": "cargo fmt",
+    "lint:rust": "cargo clippy --locked --all-targets --all-features -- -D warnings"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.12.4"
+    "@eslint/js": "10.0.1",
+    "@tauri-apps/cli": "^2.12.4",
+    "eslint": "10.14.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.14.0",
+    "prettier": "3.9.10"
+  },
+  "overrides": {
+    "minimatch": "11.0.1"
   }
 }
