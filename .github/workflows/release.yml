@@ -1,0 +1,88 @@
+name: Release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag to rebuild (vX.Y.Z)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+  windows:
+    needs: release
+    if: always() && (needs.release.outputs.created == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || needs.release.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || needs.release.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify release version and draft
+        shell: pwsh
+        run: |
+          node scripts/check-release.cjs
+          $release = gh release view $env:RELEASE_TAG --json isDraft | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or !$release.isDraft) { throw 'Expected an existing draft release.' }
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: cargo test --locked --lib
+      - run: cargo build --locked --features desktop --bin wow-addons
+      - run: npm run test:ui
+      - run: npm run dist -- --target x86_64-pc-windows-msvc
+      - run: node scripts/export-windows.cjs x86_64-pc-windows-msvc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wow-addons-windows
+          path: dist/*
+          if-no-files-found: error
+      - name: Attach executable and checksum
+        shell: pwsh
+        run: |
+          $assets = @(Get-ChildItem -LiteralPath dist -File | ForEach-Object { $_.FullName })
+          gh release upload $env:RELEASE_TAG @assets --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed.' }
+  publish:
+    needs: [release, windows]
+    if: always() && needs.windows.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || needs.release.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Publish completed release
+        run: gh release edit "$RELEASE_TAG" --draft=false --latest
