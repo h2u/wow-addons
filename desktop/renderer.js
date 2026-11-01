@@ -663,7 +663,7 @@ function selectGame(id) {
     state = await window.inventory.select(id);
     $('filter').value = '';
     render();
-    document.querySelector('[data-game-id="' + CSS.escapeHtml(id) + '"]')?.focus();
+    document.querySelector('[data-game-id="' + CSS.escape(id) + '"]')?.focus();
   });
 }
 $('game-tabs').onclick = (e) => {
