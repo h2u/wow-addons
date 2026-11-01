@@ -12,7 +12,7 @@ function classifyChanges(files) {
       continue;
     check = true;
     if (
-      /^(?:tests\/|\.github\/|rustfmt\.toml$|eslint\.config\.cjs$|\.prettier|scripts\/(?:check|test|smoke|downgrade-smoke|native-driver|zip-fixture|changes)\.cjs$|release-please-config\.json$)/.test(
+      /^(?:tests\/|\.github\/|rustfmt\.toml$|eslint\.config\.cjs$|\.prettier|scripts\/(?:check|test|smoke|downgrade-smoke|native-driver|zip-fixture|changes|draft-release|manual-release)\.cjs$)/.test(
         file,
       )
     )

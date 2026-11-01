@@ -116,23 +116,23 @@ Never commit credentials, API response captures, caches, game data, ZIPs, compil
 
 The app starts at **0.1.0**. Direct pushes to `main` are not required for any release step.
 
-### First release
+### Accumulating changes
 
-After the setup PR is merged, open **Actions → CI → Run workflow**, select branch **main**, and use **mode: initial**. The workflow reads the committed version, creates a `v0.1.0` tag and draft, and builds Windows x64 and macOS universal assets. It publishes only after both platforms succeed. It does not commit or push a version change to the protected branch.
+Merge ordinary PRs into main. After checks succeed, CI creates or updates one managed draft in Releases. All merged PRs since the previous stable tag appear in its notes; only application/packaging changes contribute to the version bump. The highest label wins: chore + minor gives a minor, and minor + major gives a major. Before the first stable release, the initial version is 0.1.0.
 
-Before the first published stable release, pushes to `main` skip Release Please with an informational notice.
+Documentation-only changes do not create a release. If application changes are already pending, subsequent documentation merges update the same draft notes. An outdated main run cannot overwrite a newer draft. CI never creates a release PR, pushes a version commit, publishes a draft automatically, or moves an existing tag.
 
-### Subsequent releases
+### Publish
 
-Release Please collects Conventional Commits after the published baseline and opens a release PR with the next SemVer, changelog and synchronized npm/Cargo/Tauri versions. Merge that PR to trigger both platform builds. Normal feature PRs do not edit versions manually.
+Open **Releases**, edit the managed draft and click **Publish release** yourself. Keep its generated version/tag. The draft targets the latest successfully checked main commit included by preparation; GitHub creates the tag on publication. The published event starts CI, checks the tagged source and builds Windows and macOS installers. New merges are collected for the next draft, not added to the published tag.
 
-Enable **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests** before using release PRs. The first manual release does not need this setting. No CurseForge secret or release PAT is required.
+The build stamps npm, Cargo and Tauri versions from the release tag in its temporary checkout. Source manifests retain the development baseline; installed app versions and asset filenames use the published SemVer. No direct push to protected main is needed.
 
-If protected branches require CI on bot-created PRs, manually run CI on the release PR branch, or configure a scoped GitHub App token whose PR events trigger CI.
+The release is public before the builds finish. Until both platforms succeed, assets can be absent or partially uploaded. Keep immutable releases disabled for this publish-first process. Publishing manually triggers the workflow even though the draft was prepared with GITHUB_TOKEN; no PAT or permission to create release PRs is needed.
 
-### Failed builds
+### Manual preparation and failed builds
 
-A failed build leaves a draft. Use **Run workflow → mode: retry → tag: vX.Y.Z** to retry the tagged source. A source correction needs a new version through a PR; do not move an existing tag.
+**Actions → CI → Run workflow → mode: prepare**, on main, refreshes the pending draft without publishing it. **mode: check** forces validation only. For failed release builds, rerun failed jobs, or use **mode: retry → tag: vX.Y.Z**, on main, to rebuild the same published tag. Retry never updates the tag to newer code. Source fixes require another PR and release. Assets are replaced by name on retry.
 
 Windows assets contain a portable EXE, an NSIS installer and SHA256 checksums. macOS assets contain a universal DMG for Intel and Apple Silicon and a separate checksum. The Mac package is ad-hoc signed, without Apple notarization; full game-management testing on a Mac is still needed.
 
@@ -156,9 +156,9 @@ Every PR requires exactly one of these labels. Other descriptive labels are allo
 | minor | `feat: description`                        | 0.2.0                     |
 | chore | `chore: description` or `fix: description` | 0.1.1                     |
 
-The **Release label** check rejects missing or conflicting release labels and titles that disagree with the label. Merge with **Squash and merge**, preserving the validated PR title. Release Please uses that conventional squash commit; maintenance changes are included in release notes and cause patch releases. Several PRs in one release use the highest requested bump. Generated release PRs receive the chore label and keep their chore release title.
+The **Release label** check rejects missing or conflicting release labels and titles that disagree with the label. Merge with **Squash and merge**, preserving the validated PR title. Draft preparation reads the release labels of merged PRs; maintenance application changes cause patch releases. Several PRs in one release use the highest requested bump.
 
-Maintainers: in **Settings → Rules → Rulesets**, protect main, require a pull request, enable required status checks and select **Release label**, **CI result** and all three CI platform checks. The core PR/CI ruleset must have no bypasses; only the separate review ruleset allows @h2u to bypass reviews through a PR. In repository merge settings, allow only squash merging and use the PR title as the default squash commit title. The workflow alone does not prevent merging until the required check is enabled. For GitHub Actions bot PRs, run CI manually on the release branch and remove/re-add the chore label yourself to trigger PR policy. Alternatively use a GitHub App token whose events trigger workflows. Version override footers in PR bodies are rejected; express breaking changes through the major label and title.
+Maintainers: in **Settings → Rules → Rulesets**, protect main, require a pull request, enable required status checks and select **Release label**, **CI result** and all three CI platform checks. The core PR/CI ruleset must have no bypasses; only the separate review ruleset allows @h2u to bypass reviews through a PR. In repository merge settings, allow only squash merging and use the PR title as the default squash commit title. The workflow alone does not prevent merging until the required check is enabled. Version override footers in PR bodies are rejected; express breaking changes through the major label and title.
 
 ## CI change detection and branch rules
 
@@ -171,7 +171,7 @@ One CI workflow handles PR validation, merges to main and manual releases. PRs n
 | README, CONTRIBUTING, CHANGELOG, docs/, LICENSE, .gitignore, .gitattributes, .editorconfig, CODEOWNERS, issue/PR templates | Skip                  | Skip                        |
 | Unknown new paths                                                                                                          | Run                   | Run (conservative default)  |
 
-Release preparation updates the release PR; binaries are built only when that release PR is merged (or an initial/retry release is explicitly requested). Manual **mode: check** forces validation only. Manual **initial/retry** forces checks before release preparation. The lightweight PR policy workflow still runs for documentation PRs and label changes.
+Release preparation updates one draft after merges. Binaries are built only when you publish that draft or retry a published tag. The lightweight PR policy workflow still runs for documentation PRs and label changes.
 
 Do not add workflow-level path filters: required jobs must report a result. The platform jobs report skipped for documentation-only changes. **CI result** fails if change detection fails, a required platform fails, or checks are unexpectedly skipped.
 
@@ -182,5 +182,3 @@ Import both **.github/rulesets/main.json** and **.github/rulesets/reviews.json**
 npm download caching was already enabled. Rust caching now reuses Cargo downloads and compiled dependencies across compatible runs; the action includes the runner platform, toolchain and dependency hashes in its keys. Universal macOS packaging uses a separate cache. PR caches are scoped by GitHub to the PR merge ref; main does not trust or restore a PR-only cache. Main caches can seed later PR checks.
 
 A cache hit never skips tests or lint. Main and release checks still run against their checked-out source. The strict required-status-check policy requires a PR to be current with main before merging; if another PR lands first, update the branch and rerun CI. Documentation-only changes continue to skip platform jobs through change detection. Do not use a cached green status as evidence that another tree was tested.
-
-If preparation created a draft but failed before its tag existed, merge the recovery fix and run CI with mode retry and that draft tag. The script restores a missing tag only from the draft's original immutable commit SHA. It never retargets an existing tag or substitutes the newer main commit.

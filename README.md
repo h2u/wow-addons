@@ -95,7 +95,7 @@ The executable appears in `target/release/`; installer bundles appear in `target
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for architecture, tests and PR guidelines. The UI is plain HTML/CSS/JavaScript; all filesystem, API, cache, credential and installation operations run in Rust.
 
-GitHub Actions checks native compilation on Windows, macOS and Linux. The first **0.1.0** release is manual: **Actions → CI → Run workflow → mode: initial**, on branch **main**. Later, Release Please groups Conventional Commits into a release PR and updates the SemVer and changelog. Merging that PR builds Windows and macOS assets and publishes only after both succeed. No direct push to the protected branch is needed.
+GitHub Actions checks native compilation on Windows, macOS and Linux. Merged application PRs accumulate in one draft release, with the version determined by the highest major/minor/chore label since the previous stable release. To ship, open **Releases → draft → Publish release**. Publishing triggers Windows and macOS builds and attaches the installers to that release. There is no separate release PR. Assets appear after CI finishes; a failed build can be retried from Actions → CI → mode: retry with the published tag.
 
 ## License and credits
 

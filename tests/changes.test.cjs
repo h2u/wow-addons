@@ -28,7 +28,6 @@ test('application, assets, dependencies and packaging run checks and release pre
     'tauri.conf.json',
     'capabilities/main.json',
     'scripts/export-macos.cjs',
-    '.release-please-manifest.json',
     'new-runtime.config',
   ])
     assert.deepEqual(classifyChanges([file]), { check: true, release: true }, file);
@@ -42,7 +41,7 @@ test('tests and CI/style tooling run checks without a release', () => {
     '.prettierrc.json',
     'eslint.config.cjs',
     'rustfmt.toml',
-    'release-please-config.json',
+    'scripts/draft-release.cjs',
   ])
     assert.deepEqual(classifyChanges([file]), { check: true, release: false }, file);
   assert.deepEqual(classifyChanges(['README.md', 'src/lib.rs']), { check: true, release: true });
