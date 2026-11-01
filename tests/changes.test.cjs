@@ -38,6 +38,7 @@ test('tests and CI/style tooling run checks without a release', () => {
     '.github/workflows/build.yml',
     'scripts/changes.cjs',
     'scripts/smoke.cjs',
+    'scripts/test-portable-update.cjs',
     '.prettierrc.json',
     'eslint.config.cjs',
     'rustfmt.toml',
