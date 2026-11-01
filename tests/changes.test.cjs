@@ -88,3 +88,18 @@ test('first push checks the complete tree and deleted files remain classified', 
     release: true,
   });
 });
+
+test('landing page and Pages workflow skip native checks and releases', () => {
+  const site = [
+    'site/index.html',
+    'site/styles.css',
+    'site/assets/icon.png',
+    '.github/workflows/pages.yml',
+  ];
+  assert.deepEqual(classifyChanges(site), { check: false, release: false });
+  assert.deepEqual(classifyChanges([...site, 'src/lib.rs']), { check: true, release: true });
+  assert.deepEqual(classifyChanges([...site, '.github/workflows/build.yml']), {
+    check: true,
+    release: false,
+  });
+});

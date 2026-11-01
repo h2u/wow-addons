@@ -81,7 +81,11 @@ test('later PRs update the same draft and major supersedes the previous version'
   assert.equal(f.writes[0].tag_name, 'v1.0.0');
 });
 test('documentation-only batches and superseded main runs never create drafts', async () => {
-  for (const options of [{ files: ['README.md'] }, { latest: false }]) {
+  for (const options of [
+    { files: ['README.md'] },
+    { files: ['site/index.html', '.github/workflows/pages.yml'], labels: [] },
+    { latest: false },
+  ]) {
     const f = fixture(options);
     assert.ok((await syncDraft(f.args)).skipped);
     assert.equal(f.writes.length, 0);

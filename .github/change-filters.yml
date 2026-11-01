@@ -1,0 +1,15 @@
+# With predicate-quantifier: every, a path must pass every exclusion.
+check: &native-checks
+  - '**'
+  - '!site/**'
+  - '!.github/workflows/pages.yml'
+  - '!docs/**'
+  - '!{README,CONTRIBUTING,CHANGELOG}{,.*}'
+  - '!{LICENSE,.gitignore,.gitattributes,.editorconfig}'
+  - '!.github/{CODEOWNERS,ISSUE_TEMPLATE/**,PULL_REQUEST_TEMPLATE*}'
+release:
+  - *native-checks
+  - '!tests/**'
+  - '!.github/**'
+  - '!{rustfmt.toml,eslint.config.cjs,.prettier*}'
+  - '!scripts/{check,test,test-portable-update,smoke,downgrade-smoke,native-driver,zip-fixture,changes,draft-release,manual-release}.cjs'
