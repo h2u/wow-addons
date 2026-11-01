@@ -1,0 +1,31 @@
+{
+  "name": "wow-addons",
+  "version": "0.1.0",
+  "description": "Compact World of Warcraft addon manager. Tauri UI and Rust backend.",
+  "author": "Edgars Spirins",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/h2u/wow-addons.git"
+  },
+  "homepage": "https://github.com/h2u/wow-addons",
+  "bugs": {
+    "url": "https://github.com/h2u/wow-addons/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "tauri dev --features desktop",
+    "dist": "tauri build --features desktop",
+    "check": "node scripts/check.cjs",
+    "test": "node scripts/test.cjs",
+    "test:ui": "node scripts/smoke.cjs",
+    "test:live": "node scripts/downgrade-smoke.cjs",
+    "build:icons": "tauri icon desktop/assets/app-icon.png --output build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4"
+  }
+}
