@@ -168,7 +168,7 @@ One CI workflow handles PR validation, merges to main and manual releases. PRs n
 | -------------------------------------------------------------------------------------------------------------------------- | --------------------- | --------------------------- |
 | Rust/frontend code, assets, capabilities, Tauri config, dependencies, packaging scripts                                    | Run                   | Run after checks pass       |
 | Tests, CI workflows/actions, lint/format configuration, release automation configuration                                   | Run                   | Skip                        |
-| README, CONTRIBUTION, CHANGELOG, docs/, LICENSE, .gitignore, .gitattributes, .editorconfig, CODEOWNERS, issue/PR templates | Skip                  | Skip                        |
+| README, CONTRIBUTING, CHANGELOG, docs/, LICENSE, .gitignore, .gitattributes, .editorconfig, CODEOWNERS, issue/PR templates | Skip                  | Skip                        |
 | Unknown new paths                                                                                                          | Run                   | Run (conservative default)  |
 
 Release preparation updates the release PR; binaries are built only when that release PR is merged (or an initial/retry release is explicitly requested). Manual **mode: check** forces validation only. Manual **initial/retry** forces checks before release preparation. The lightweight PR policy workflow still runs for documentation PRs and label changes.

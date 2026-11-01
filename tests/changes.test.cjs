@@ -5,7 +5,7 @@ test('documentation and repository metadata do not build or release', () => {
   assert.deepEqual(
     classifyChanges([
       'README.md',
-      'CONTRIBUTION.md',
+      'CONTRIBUTING.md',
       'docs/setup.md',
       '.gitignore',
       '.github/CODEOWNERS',
