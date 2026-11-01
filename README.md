@@ -4,7 +4,7 @@
 
 A compact, ad-free World of Warcraft addon manager built with **Rust and Tauri 2**. Keep separate libraries for Retail, Forever and Classic, install ZIPs, and manage CurseForge releases.
 
-[Download](https://github.com/h2u/wow-addons/releases) · [Contribute](CONTRIBUTION.md) · [Buy Me a Coffee](https://buymeacoffee.com/edgars.spirins)
+[Download](https://github.com/h2u/wow-addons/releases) · [Contribute](CONTRIBUTING.md) · [Buy Me a Coffee](https://buymeacoffee.com/edgars.spirins)
 
 ## Install
 
@@ -72,7 +72,7 @@ Install [Rust stable](https://rustup.rs/) and [Node.js 24 LTS](https://nodejs.or
 
 - **Windows:** Visual Studio Build Tools with Desktop development with C++, the MSVC Rust toolchain, and WebView2.
 - **macOS:** Xcode command-line tools.
-- **Linux:** a C compiler, GTK/WebKitGTK development packages and D-Bus development headers. Ubuntu/Debian setup is in [CONTRIBUTION.md](CONTRIBUTION.md).
+- **Linux:** a C compiler, GTK/WebKitGTK development packages and D-Bus development headers. Ubuntu/Debian setup is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Clone onto a local filesystem, then:
 
@@ -93,7 +93,7 @@ The executable appears in `target/release/`; installer bundles appear in `target
 
 ## Development and releases
 
-See [CONTRIBUTION.md](CONTRIBUTION.md) for architecture, tests and PR guidelines. The UI is plain HTML/CSS/JavaScript; all filesystem, API, cache, credential and installation operations run in Rust.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for architecture, tests and PR guidelines. The UI is plain HTML/CSS/JavaScript; all filesystem, API, cache, credential and installation operations run in Rust.
 
 GitHub Actions checks native compilation on Windows, macOS and Linux. The first **0.1.0** release is manual: **Actions → CI → Run workflow → mode: initial**, on branch **main**. Later, Release Please groups Conventional Commits into a release PR and updates the SemVer and changelog. Merging that PR builds Windows and macOS assets and publishes only after both succeed. No direct push to the protected branch is needed.
 
@@ -103,4 +103,4 @@ Project code is [MIT licensed](LICENSE). [Phosphor Icons](https://phosphoricons.
 
 World of Warcraft and CurseForge belong to their respective owners. This independent project does not redistribute addon archives.
 
-Formatting uses Prettier and rustfmt; linting uses ESLint and Clippy. See [the contributor checks](CONTRIBUTION.md#formatting-and-linting).
+Formatting uses Prettier and rustfmt; linting uses ESLint and Clippy. See [the contributor checks](CONTRIBUTING.md#formatting-and-linting).

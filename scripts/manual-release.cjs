@@ -10,11 +10,33 @@ function releaseTag({ mode, version, tag, ref }) {
   if (mode === 'retry' && tag?.startsWith('v') && SEMVER.test(tag.slice(1))) return tag;
   throw new Error('Choose initial or retry with a vX.Y.Z tag.');
 }
+function ensureTag(selected, sha, gh) {
+  const refs = gh(['api', 'repos/{owner}/{repo}/git/matching-refs/tags/' + selected]);
+  const existing = refs.find((ref) => ref.ref === 'refs/tags/' + selected);
+  if (!existing) {
+    if (!/^[a-f0-9]{40}$/i.test(sha || ''))
+      throw new Error('Cannot restore a missing tag without an immutable draft target SHA.');
+    gh([
+      'api',
+      '--method',
+      'POST',
+      'repos/{owner}/{repo}/git/refs',
+      '-f',
+      'ref=refs/tags/' + selected,
+      '-f',
+      'sha=' + sha,
+    ]);
+  }
+  const resolved = gh(['api', 'repos/{owner}/{repo}/commits/' + selected]);
+  if (/^[a-f0-9]{40}$/i.test(sha || '') && resolved.sha !== sha)
+    throw new Error('The tag points to another commit. Existing tags are never moved.');
+}
 function prepareRelease({ mode, version, tag, ref, sha, gh }) {
   const selected = releaseTag({ mode, version, tag, ref });
   if (mode === 'retry') {
-    const release = gh(['release', 'view', selected, '--json', 'isDraft']);
+    const release = gh(['release', 'view', selected, '--json', 'isDraft,targetCommitish']);
     if (!release.isDraft) throw new Error('Retry is allowed only for an existing draft.');
+    ensureTag(selected, release.targetCommitish, gh);
     return selected;
   }
   const published = gh([
@@ -33,20 +55,19 @@ function prepareRelease({ mode, version, tag, ref, sha, gh }) {
   if (existing.some((r) => r.tagName === selected))
     throw new Error('This release already exists. Use retry with ' + selected + '.');
   if (!/^[a-f0-9]{40}$/i.test(sha || '')) throw new Error('A checked-out commit SHA is required.');
+  ensureTag(selected, sha, gh);
   gh([
     'release',
     'create',
     selected,
     '--target',
     sha,
+    '--verify-tag',
     '--draft',
     '--generate-notes',
     '--title',
     selected,
   ]);
-  const resolved = gh(['api', 'repos/{owner}/{repo}/commits/' + selected]);
-  if (resolved.sha !== sha)
-    throw new Error('The tag points to another commit. The release remains a draft.');
   return selected;
 }
 if (require.main === module) {

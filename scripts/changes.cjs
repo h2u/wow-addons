@@ -5,7 +5,7 @@ function classifyChanges(files) {
     release = false;
   for (const file of files) {
     if (
-      /^(?:docs\/|(?:README|CONTRIBUTION|CHANGELOG)(?:\.[^/]*)?$|LICENSE$|\.gitignore$|\.gitattributes$|\.editorconfig$|\.github\/(?:CODEOWNERS|ISSUE_TEMPLATE\/|PULL_REQUEST_TEMPLATE))/i.test(
+      /^(?:docs\/|(?:README|CONTRIBUTING|CHANGELOG)(?:\.[^/]*)?$|LICENSE$|\.gitignore$|\.gitattributes$|\.editorconfig$|\.github\/(?:CODEOWNERS|ISSUE_TEMPLATE\/|PULL_REQUEST_TEMPLATE))/i.test(
         file,
       )
     )
