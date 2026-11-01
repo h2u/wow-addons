@@ -1,0 +1,66 @@
+[package]
+name = "wow-addons-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+default-run = "wow-addons"
+
+[lib]
+name = "wow_addons_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "wow-addons"
+path = "src/desktop_main.rs"
+required-features = ["desktop"]
+
+[[bin]]
+name = "wow-addons-core"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+default = []
+cli = []
+desktop = ["dep:tauri", "dep:tauri-build", "dep:rfd", "dep:keyring", "dep:file_icon_provider"]
+test-driver = ["desktop"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zip = { version = "6", default-features = false, features = ["deflate"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+sha2 = "0.10"
+sha1 = "0.10"
+md-5 = "0.10"
+base64 = "0.22"
+uuid = { version = "1", features = ["v4"] }
+url = "2"
+directories = "6"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "tga", "ico"] }
+regex = "1"
+open = "5"
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+tauri = { version = "2", optional = true }
+rfd = { version = "0.15", optional = true, default-features = false, features = ["xdg-portal", "tokio"] }
+
+[target.'cfg(windows)'.dependencies]
+aes-gcm = "0.10"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+keyring = { version = "3", optional = true, features = ["windows-native"] }
+file_icon_provider = { version = "1", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", optional = true, features = ["apple-native"] }
+file_icon_provider = { version = "1", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", optional = true, features = ["sync-secret-service", "crypto-rust"] }
+
+[build-dependencies]
+tauri-build = { version = "2", optional = true, features = [] }
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1
