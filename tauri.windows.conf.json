@@ -1,7 +1,5 @@
 {
   "bundle": {
-    "targets": [
-      "nsis"
-    ]
+    "targets": ["nsis"]
   }
 }

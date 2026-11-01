@@ -29,20 +29,14 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": [
-      "build/icon.png",
-      "build/icon.ico",
-      "build/icon.icns"
-    ],
+    "icon": ["build/icon.png", "build/icon.ico", "build/icon.icns"],
     "shortDescription": "Compact World of Warcraft addon manager",
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
       },
       "nsis": {
-        "languages": [
-          "English"
-        ]
+        "languages": ["English"]
       }
     }
   }

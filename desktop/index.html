@@ -1,62 +1,414 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WoW Addons</title>
-<link rel="stylesheet" href="styles.css">
-<script defer src="bridge.js"></script>
-<script defer src="grouping.js"></script>
-<script defer src="renderer.js"></script>
-</head>
-<body>
-<main>
-  <section class="page-heading"><div><span class="eyebrow">LIBRARY</span><h1>My addons<span id="heading-count"></span></h1><p id="page-description">A little order for your next adventure.</p></div><div class="heading-actions"><button id="add-game" class="secondary"><span class="ph-icon ph-game-controller" aria-hidden="true"></span><span>Manage Games</span></button><button id="install-from-url" class="secondary"><span class="ph-icon ph-link-simple" aria-hidden="true"></span><span>Install from URL</span></button><button id="settings" class="subtle"><span class="ph-icon ph-gear-six" aria-hidden="true"></span><span>Settings</span></button></div></section>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WoW Addons</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="bridge.js"></script>
+    <script defer src="grouping.js"></script>
+    <script defer src="renderer.js"></script>
+  </head>
+  <body>
+    <main>
+      <section class="page-heading">
+        <div>
+          <span class="eyebrow">LIBRARY</span>
+          <h1>My addons<span id="heading-count"></span></h1>
+          <p id="page-description">A little order for your next adventure.</p>
+        </div>
+        <div class="heading-actions">
+          <button id="add-game" class="secondary">
+            <span class="ph-icon ph-game-controller" aria-hidden="true"></span
+            ><span>Manage Games</span></button
+          ><button id="install-from-url" class="secondary">
+            <span class="ph-icon ph-link-simple" aria-hidden="true"></span
+            ><span>Install from URL</span></button
+          ><button id="settings" class="subtle">
+            <span class="ph-icon ph-gear-six" aria-hidden="true"></span><span>Settings</span>
+          </button>
+        </div>
+      </section>
 
-  <section id="library" hidden>
-    <div class="toolbar">
-      <div class="game-clients"><span class="client-label">GAME CLIENT</span><div id="game-tabs" role="tablist" aria-label="Game client"></div></div>
-      <div class="toolbar-spacer"></div>
-      <label class="search"><span class="ph-icon ph-magnifying-glass" aria-hidden="true"></span><input id="filter" type="search" placeholder="Filter addons…" aria-label="Filter addons"></label>
-      <button id="update-all" class="primary" hidden><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span><span>Update all</span></button><button id="check-updates" class="secondary"><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span><span>Check for Updates</span></button>
-      <button id="rescan" class="secondary"><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span><span>Rescan Folders</span></button>
-      <button id="columns" class="secondary"><span class="ph-icon ph-columns" aria-hidden="true"></span><span>Columns</span></button>
+      <section id="library" hidden>
+        <div class="toolbar">
+          <div class="game-clients">
+            <span class="client-label">GAME CLIENT</span>
+            <div id="game-tabs" role="tablist" aria-label="Game client"></div>
+          </div>
+          <div class="toolbar-spacer"></div>
+          <label class="search"
+            ><span class="ph-icon ph-magnifying-glass" aria-hidden="true"></span
+            ><input
+              id="filter"
+              type="search"
+              placeholder="Filter addons…"
+              aria-label="Filter addons"
+          /></label>
+          <button id="update-all" class="primary" hidden>
+            <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
+            ><span>Update all</span></button
+          ><button id="check-updates" class="secondary">
+            <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
+            ><span>Check for Updates</span>
+          </button>
+          <button id="rescan" class="secondary">
+            <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
+            ><span>Rescan Folders</span>
+          </button>
+          <button id="columns" class="secondary">
+            <span class="ph-icon ph-columns" aria-hidden="true"></span><span>Columns</span>
+          </button>
+        </div>
+        <div class="inventory-meta">
+          <span id="inventory-summary"></span><span id="scan-time"></span>
+        </div>
+        <div class="table-region">
+          <div id="table-loading" hidden role="status" aria-live="polite">
+            <span class="ph-icon ph-spinner-gap" aria-hidden="true"></span
+            ><strong id="table-loading-text">Scanning folders…</strong
+            ><span>Keep this window open.</span>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead id="table-head"></thead>
+              <tbody id="table-body"></tbody>
+            </table>
+            <div id="no-results" class="no-results" hidden>No addons match your filter.</div>
+          </div>
+        </div>
+        <footer class="table-footer">
+          <span id="folder-path"></span><span>Local versions · updates not checked</span>
+        </footer>
+        <details id="warnings" hidden>
+          <summary id="warnings-summary"></summary>
+          <ul id="warnings-list"></ul>
+        </details>
+      </section>
+      <section id="empty-state" class="empty-state" hidden>
+        <div class="empty-symbol"><img src="assets/app-icon.png" alt="" /></div>
+        <span class="eyebrow">ONE HOME FOR EVERY CLIENT</span>
+        <h2>Your adventures, organized.</h2>
+        <p>
+          Add your World of Warcraft installation to see its addons.<br />Keep Retail, Forever and
+          Classic in their own libraries.
+        </p>
+        <button id="empty-add" class="primary">
+          <span class="ph-icon ph-plus" aria-hidden="true"></span><span>Add your first game</span>
+        </button>
+        <div class="empty-notes">
+          <span><span class="ph-icon ph-check" aria-hidden="true"></span>Works offline</span
+          ><span><span class="ph-icon ph-check" aria-hidden="true"></span>Manual rescans</span
+          ><span
+            ><span class="ph-icon ph-check" aria-hidden="true"></span>Game files stay
+            untouched</span
+          >
+        </div>
+      </section>
+      <div id="fatal" hidden></div>
+    </main>
+    <div class="toast-stack">
+      <div id="error" class="toast" role="alert" hidden>
+        <span class="toast-message"></span
+        ><button class="toast-close" data-dismiss="error" aria-label="Dismiss error">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div id="notice" class="toast" role="status" hidden>
+        <span class="toast-message"></span
+        ><button class="toast-close" data-dismiss="notice" aria-label="Dismiss notification">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </div>
     </div>
-    <div class="inventory-meta"><span id="inventory-summary"></span><span id="scan-time"></span></div>
-    <div class="table-region"><div id="table-loading" hidden role="status" aria-live="polite"><span class="ph-icon ph-spinner-gap" aria-hidden="true"></span><strong id="table-loading-text">Scanning folders…</strong><span>Keep this window open.</span></div><div class="table-container"><table><thead id="table-head"></thead><tbody id="table-body"></tbody></table><div id="no-results" class="no-results" hidden>No addons match your filter.</div></div></div>
-    <footer class="table-footer"><span id="folder-path"></span><span>Local versions · updates not checked</span></footer>
-    <details id="warnings" hidden><summary id="warnings-summary"></summary><ul id="warnings-list"></ul></details>
-  </section>
-  <section id="empty-state" class="empty-state" hidden>
-    <div class="empty-symbol"><img src="assets/app-icon.png" alt=""></div><span class="eyebrow">ONE HOME FOR EVERY CLIENT</span>
-    <h2>Your adventures, organized.</h2><p>Add your World of Warcraft installation to see its addons.<br>Keep Retail, Forever and Classic in their own libraries.</p>
-    <button id="empty-add" class="primary"><span class="ph-icon ph-plus" aria-hidden="true"></span><span>Add your first game</span></button>
-    <div class="empty-notes"><span><span class="ph-icon ph-check" aria-hidden="true"></span>Works offline</span><span><span class="ph-icon ph-check" aria-hidden="true"></span>Manual rescans</span><span><span class="ph-icon ph-check" aria-hidden="true"></span>Game files stay untouched</span></div>
-  </section>
-  <div id="fatal" hidden></div>
-</main>
-<div class="toast-stack"><div id="error" class="toast" role="alert" hidden><span class="toast-message"></span><button class="toast-close" data-dismiss="error" aria-label="Dismiss error"><span class="ph-icon ph-x" aria-hidden="true"></span></button></div><div id="notice" class="toast" role="status" hidden><span class="toast-message"></span><button class="toast-close" data-dismiss="notice" aria-label="Dismiss notification"><span class="ph-icon ph-x" aria-hidden="true"></span></button></div></div>
-<div id="busy" role="status" hidden><span class="ph-icon ph-spinner-gap" aria-hidden="true"></span><span id="busy-text">Scanning folders…</span></div>
-<dialog id="add-dialog">
-  <form method="dialog"><button class="close" aria-label="Close"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form>
-  <span class="eyebrow">GAME LIBRARY</span><h2>Add a game</h2>
-  <p>Choose a client executable, its folder, or the main World of Warcraft folder to find multiple clients.</p>
-  <label class="field-label" for="game-path">Installation path</label>
-  <div class="path-input"><input id="game-path" placeholder="Path to WoW.exe, client folder, or AddOns"><button id="browse-folder" class="secondary"><span class="ph-icon ph-folder-open" aria-hidden="true"></span><span>Folder…</span></button><button id="browse-file" class="secondary"><span class="ph-icon ph-file" aria-hidden="true"></span><span>Executable…</span></button></div>
-  <div class="dialog-actions"><button id="detect-games" class="secondary"><span class="ph-icon ph-magnifying-glass" aria-hidden="true"></span><span>Find clients</span></button><span id="detect-status"></span></div>
-  <div id="detected-games"></div>
-  <div class="dialog-footer"><span>Adding a game scans its folders once.</span><button id="confirm-add" class="primary" disabled><span class="ph-icon ph-check" aria-hidden="true"></span><span>OK · Add selected</span></button></div>
-</dialog>
-<dialog id="columns-dialog">
-  <form method="dialog"><button class="close" aria-label="Close"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form>
-  <span class="eyebrow">MAKE IT YOURS</span><h2>Table columns</h2><p>Show what matters. Use the arrows to change the order.</p>
-  <div id="column-options"></div>
-  <div class="dialog-footer"><button id="reset-columns" class="subtle"><span class="ph-icon ph-arrow-counter-clockwise" aria-hidden="true"></span><span>Reset defaults</span></button><form method="dialog"><button class="primary"><span class="ph-icon ph-check" aria-hidden="true"></span><span>Done</span></button></form></div>
-</dialog>
-<dialog id="manage-dialog">
-  <form method="dialog"><button class="close" aria-label="Close"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form>
-  <span class="eyebrow">GAME LIBRARY</span><h2>Your installations</h2><p>Removing a profile only removes it from this app.</p><div id="managed-games"></div>
-<div class="dialog-footer"><span id="cache-location"></span><button id="manage-add" class="primary"><span class="ph-icon ph-plus" aria-hidden="true"></span><span>Add game</span></button></div>
-</dialog>
-<dialog id="details-dialog"><form method="dialog"><button class="close" aria-label="Close"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form><div class="detail-heading"><span id="detail-avatar" class="detail-avatar"><span class="ph-icon ph-puzzle-piece" aria-hidden="true"></span></span><div><span class="eyebrow">ADDON DETAILS</span><h2 id="detail-name"></h2><button id="get-icon" class="secondary"><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span><span>Refresh Icon</span></button></div></div><p id="icon-status" class="small muted" role="status"></p><div id="detail-content"></div><label class="field-label" for="source-url">CurseForge project URL</label><div class="source-input"><input id="source-url" class="full-input" placeholder="https://www.curseforge.com/wow/addons/name"><button id="save-binding" class="primary"><span class="ph-icon ph-floppy-disk" aria-hidden="true"></span><span>Save Link</span></button></div><p id="binding-status" class="small muted" role="status"></p><div class="dialog-footer details-footer"><button id="detail-show-folder" class="subtle"><span class="ph-icon ph-folder-open" aria-hidden="true"></span>Show Folder</button><div><button id="detail-remove" class="subtle danger"><span class="ph-icon ph-trash" aria-hidden="true"></span>Remove</button><button id="detail-close" class="secondary">Close</button></div></div></dialog>
-<dialog id="settings-dialog"><form method="dialog"><button class="close" aria-label="Close"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form><span class="eyebrow">PREFERENCES</span><h2>Settings</h2>  <label class="field-label" for="api-key">CurseForge API key</label><div class="path-input"><input id="api-key" type="password" autocomplete="off" placeholder="Paste your key"><button id="save-api-key" class="secondary"><span class="ph-icon ph-key" aria-hidden="true"></span><span>Save key</span></button><button id="clear-api-key" class="subtle" disabled><span class="ph-icon ph-trash" aria-hidden="true"></span><span>Clear key</span></button></div><p id="api-key-status" class="small">Stored encrypted when system secure storage is available. Saving does not download anything.</p><button id="open-api-console" class="subtle"><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Get a CurseForge API key</button><p class="small">Project links and icons are cached on this device. Startup stays offline.</p><section class="about-section"><div class="about-title"><img class="about-logo" src="assets/app-icon.png" alt=""><h3>WoW Addons</h3><span id="app-version" class="badge" aria-label="Application version"></span></div><p class="small">Windows is the tested release platform. macOS and Linux can be built from source.</p><div class="about-links"><button id="open-build-guide" class="subtle"><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Build for macOS / Linux</button><button id="open-repository" class="subtle" title="https://github.com/h2u/wow-addons"><span class="ph-icon ph-github-logo" aria-hidden="true"></span><span>GitHub</span><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span></button><button id="open-coffee" class="subtle" title="https://buymeacoffee.com/edgars.spirins"><span class="ph-icon ph-coffee" aria-hidden="true"></span><span>Buy Me a Coffee</span><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span></button></div></section></dialog><div id="drop-overlay" hidden><span class="ph-icon ph-upload-simple" aria-hidden="true"></span><h2>Drop an addon ZIP</h2><p id="drop-target"></p></div><div id="addon-menu" class="addon-menu" popover><button data-action="check"><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Check for Updates</button><button data-action="update" hidden><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span><span data-update-label>Update</span></button><button data-action="download" hidden><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Open Download Page</button><button data-action="source"><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>View on CurseForge</button><button data-action="folder"><span class="ph-icon ph-folder-open" aria-hidden="true"></span>Show folder</button><button data-action="downgrade"><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Downgrade…</button><button data-action="reinstall"><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Reinstall from ZIP</button><button data-action="remove" class="danger"><span class="ph-icon ph-trash" aria-hidden="true"></span>Remove</button></div><dialog id="import-dialog"><form method="dialog"><button class="close" aria-label="Cancel"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form><span class="eyebrow">ZIP IMPORT</span><h2>Addon already installed</h2><p>These folders already exist. Reinstall replaces them after making a backup.</p><div id="import-packages"></div><div class="dialog-footer"><button id="cancel-import" class="subtle">Cancel</button><button id="confirm-import" class="primary"><span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Reinstall</button></div></dialog><dialog id="remove-dialog"><form method="dialog"><button class="close" aria-label="Cancel"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form><span class="eyebrow">REMOVE ADDON</span><h2 id="remove-title"></h2><p>These folders will be removed from this client and saved in the app backup folder. Character settings are kept.</p><div id="remove-folders"></div><div class="dialog-footer"><button id="cancel-remove" class="subtle">Cancel</button><button id="confirm-remove" class="primary"><span class="ph-icon ph-trash" aria-hidden="true"></span>Remove addon</button></div></dialog><dialog id="url-dialog"><form method="dialog"><button class="close" aria-label="Close"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form><span class="eyebrow">CURSEFORGE</span><h2>Install from URL</h2><p id="url-client"></p><label for="install-url" class="field-label">Addon project or file URL</label><input id="install-url" class="full-input" placeholder="https://www.curseforge.com/wow/addons/bagnon"><p id="url-status" class="small muted" role="status"></p><div id="url-fallback" hidden><p>The download needs your browser. Download the file there, then import its ZIP.</p><button id="url-import-zip" class="subtle"><span class="ph-icon ph-file" aria-hidden="true"></span>Import downloaded ZIP</button></div><div class="dialog-footer"><button id="url-open-page" class="subtle"><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Open Addon URL</button><button id="confirm-url" class="primary"><span class="ph-icon ph-plus" aria-hidden="true"></span>Install</button></div></dialog><dialog id="versions-dialog"><form method="dialog"><button class="close" aria-label="Close"><span class="ph-icon ph-x" aria-hidden="true"></span></button></form><span class="eyebrow">CURSEFORGE RELEASES</span><h2>Downgrade / choose version</h2><p id="versions-summary"></p><label class="field-label" for="release-choice">Compatible releases · newest first</label><select id="release-choice" size="7" class="full-input" aria-label="Addon release"></select><p id="release-description" class="small muted"></p><p class="small">Installing replaces the package after making a backup. Future update checks still compare with the latest stable release.</p><div class="dialog-footer"><button id="more-releases" class="subtle" hidden>Load older releases</button><button id="close-releases" class="subtle">Cancel</button><button id="install-release" class="primary" disabled>Install selected version</button></div></dialog></body></html>
+    <div id="busy" role="status" hidden>
+      <span class="ph-icon ph-spinner-gap" aria-hidden="true"></span
+      ><span id="busy-text">Scanning folders…</span>
+    </div>
+    <dialog id="add-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Close">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <span class="eyebrow">GAME LIBRARY</span>
+      <h2>Add a game</h2>
+      <p>
+        Choose a client executable, its folder, or the main World of Warcraft folder to find
+        multiple clients.
+      </p>
+      <label class="field-label" for="game-path">Installation path</label>
+      <div class="path-input">
+        <input id="game-path" placeholder="Path to WoW.exe, client folder, or AddOns" /><button
+          id="browse-folder"
+          class="secondary"
+        >
+          <span class="ph-icon ph-folder-open" aria-hidden="true"></span
+          ><span>Folder…</span></button
+        ><button id="browse-file" class="secondary">
+          <span class="ph-icon ph-file" aria-hidden="true"></span><span>Executable…</span>
+        </button>
+      </div>
+      <div class="dialog-actions">
+        <button id="detect-games" class="secondary">
+          <span class="ph-icon ph-magnifying-glass" aria-hidden="true"></span
+          ><span>Find clients</span></button
+        ><span id="detect-status"></span>
+      </div>
+      <div id="detected-games"></div>
+      <div class="dialog-footer">
+        <span>Adding a game scans its folders once.</span
+        ><button id="confirm-add" class="primary" disabled>
+          <span class="ph-icon ph-check" aria-hidden="true"></span><span>OK · Add selected</span>
+        </button>
+      </div>
+    </dialog>
+    <dialog id="columns-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Close">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <span class="eyebrow">MAKE IT YOURS</span>
+      <h2>Table columns</h2>
+      <p>Show what matters. Use the arrows to change the order.</p>
+      <div id="column-options"></div>
+      <div class="dialog-footer">
+        <button id="reset-columns" class="subtle">
+          <span class="ph-icon ph-arrow-counter-clockwise" aria-hidden="true"></span
+          ><span>Reset defaults</span>
+        </button>
+        <form method="dialog">
+          <button class="primary">
+            <span class="ph-icon ph-check" aria-hidden="true"></span><span>Done</span>
+          </button>
+        </form>
+      </div>
+    </dialog>
+    <dialog id="manage-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Close">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <span class="eyebrow">GAME LIBRARY</span>
+      <h2>Your installations</h2>
+      <p>Removing a profile only removes it from this app.</p>
+      <div id="managed-games"></div>
+      <div class="dialog-footer">
+        <span id="cache-location"></span
+        ><button id="manage-add" class="primary">
+          <span class="ph-icon ph-plus" aria-hidden="true"></span><span>Add game</span>
+        </button>
+      </div>
+    </dialog>
+    <dialog id="details-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Close">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <div class="detail-heading">
+        <span id="detail-avatar" class="detail-avatar"
+          ><span class="ph-icon ph-puzzle-piece" aria-hidden="true"></span
+        ></span>
+        <div>
+          <span class="eyebrow">ADDON DETAILS</span>
+          <h2 id="detail-name"></h2>
+          <button id="get-icon" class="secondary">
+            <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
+            ><span>Refresh Icon</span>
+          </button>
+        </div>
+      </div>
+      <p id="icon-status" class="small muted" role="status"></p>
+      <div id="detail-content"></div>
+      <label class="field-label" for="source-url">CurseForge project URL</label>
+      <div class="source-input">
+        <input
+          id="source-url"
+          class="full-input"
+          placeholder="https://www.curseforge.com/wow/addons/name"
+        /><button id="save-binding" class="primary">
+          <span class="ph-icon ph-floppy-disk" aria-hidden="true"></span><span>Save Link</span>
+        </button>
+      </div>
+      <p id="binding-status" class="small muted" role="status"></p>
+      <div class="dialog-footer details-footer">
+        <button id="detail-show-folder" class="subtle">
+          <span class="ph-icon ph-folder-open" aria-hidden="true"></span>Show Folder
+        </button>
+        <div>
+          <button id="detail-remove" class="subtle danger">
+            <span class="ph-icon ph-trash" aria-hidden="true"></span>Remove</button
+          ><button id="detail-close" class="secondary">Close</button>
+        </div>
+      </div>
+    </dialog>
+    <dialog id="settings-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Close">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <span class="eyebrow">PREFERENCES</span>
+      <h2>Settings</h2>
+      <label class="field-label" for="api-key">CurseForge API key</label>
+      <div class="path-input">
+        <input
+          id="api-key"
+          type="password"
+          autocomplete="off"
+          placeholder="Paste your key"
+        /><button id="save-api-key" class="secondary">
+          <span class="ph-icon ph-key" aria-hidden="true"></span><span>Save key</span></button
+        ><button id="clear-api-key" class="subtle" disabled>
+          <span class="ph-icon ph-trash" aria-hidden="true"></span><span>Clear key</span>
+        </button>
+      </div>
+      <p id="api-key-status" class="small">
+        Stored encrypted when system secure storage is available. Saving does not download anything.
+      </p>
+      <button id="open-api-console" class="subtle">
+        <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Get a CurseForge API key
+      </button>
+      <p class="small">Project links and icons are cached on this device. Startup stays offline.</p>
+      <section class="about-section">
+        <div class="about-title">
+          <img class="about-logo" src="assets/app-icon.png" alt="" />
+          <h3>WoW Addons</h3>
+          <span id="app-version" class="badge" aria-label="Application version"></span>
+        </div>
+        <p class="small">
+          Windows is tested end to end. macOS universal releases are available; Linux can be built
+          from source.
+        </p>
+        <div class="about-links">
+          <button id="open-build-guide" class="subtle">
+            <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Build from source</button
+          ><button id="open-repository" class="subtle" title="https://github.com/h2u/wow-addons">
+            <span class="ph-icon ph-github-logo" aria-hidden="true"></span><span>GitHub</span
+            ><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span></button
+          ><button id="open-coffee" class="subtle" title="https://buymeacoffee.com/edgars.spirins">
+            <span class="ph-icon ph-coffee" aria-hidden="true"></span><span>Buy Me a Coffee</span
+            ><span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>
+          </button>
+        </div>
+      </section>
+    </dialog>
+    <div id="drop-overlay" hidden>
+      <span class="ph-icon ph-upload-simple" aria-hidden="true"></span>
+      <h2>Drop an addon ZIP</h2>
+      <p id="drop-target"></p>
+    </div>
+    <div id="addon-menu" class="addon-menu" popover>
+      <button data-action="check">
+        <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Check for Updates</button
+      ><button data-action="update" hidden>
+        <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
+        ><span data-update-label>Update</span></button
+      ><button data-action="download" hidden>
+        <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Open Download Page</button
+      ><button data-action="source">
+        <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>View on CurseForge</button
+      ><button data-action="folder">
+        <span class="ph-icon ph-folder-open" aria-hidden="true"></span>Show folder</button
+      ><button data-action="downgrade">
+        <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Downgrade…</button
+      ><button data-action="reinstall">
+        <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Reinstall from ZIP</button
+      ><button data-action="remove" class="danger">
+        <span class="ph-icon ph-trash" aria-hidden="true"></span>Remove
+      </button>
+    </div>
+    <dialog id="import-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Cancel">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <span class="eyebrow">ZIP IMPORT</span>
+      <h2>Addon already installed</h2>
+      <p>These folders already exist. Reinstall replaces them after making a backup.</p>
+      <div id="import-packages"></div>
+      <div class="dialog-footer">
+        <button id="cancel-import" class="subtle">Cancel</button
+        ><button id="confirm-import" class="primary">
+          <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Reinstall
+        </button>
+      </div>
+    </dialog>
+    <dialog id="remove-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Cancel">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <span class="eyebrow">REMOVE ADDON</span>
+      <h2 id="remove-title"></h2>
+      <p>
+        These folders will be removed from this client and saved in the app backup folder. Character
+        settings are kept.
+      </p>
+      <div id="remove-folders"></div>
+      <div class="dialog-footer">
+        <button id="cancel-remove" class="subtle">Cancel</button
+        ><button id="confirm-remove" class="primary">
+          <span class="ph-icon ph-trash" aria-hidden="true"></span>Remove addon
+        </button>
+      </div>
+    </dialog>
+    <dialog id="url-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Close">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <span class="eyebrow">CURSEFORGE</span>
+      <h2>Install from URL</h2>
+      <p id="url-client"></p>
+      <label for="install-url" class="field-label">Addon project or file URL</label
+      ><input
+        id="install-url"
+        class="full-input"
+        placeholder="https://www.curseforge.com/wow/addons/bagnon"
+      />
+      <p id="url-status" class="small muted" role="status"></p>
+      <div id="url-fallback" hidden>
+        <p>The download needs your browser. Download the file there, then import its ZIP.</p>
+        <button id="url-import-zip" class="subtle">
+          <span class="ph-icon ph-file" aria-hidden="true"></span>Import downloaded ZIP
+        </button>
+      </div>
+      <div class="dialog-footer">
+        <button id="url-open-page" class="subtle">
+          <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Open Addon URL</button
+        ><button id="confirm-url" class="primary">
+          <span class="ph-icon ph-plus" aria-hidden="true"></span>Install
+        </button>
+      </div>
+    </dialog>
+    <dialog id="versions-dialog">
+      <form method="dialog">
+        <button class="close" aria-label="Close">
+          <span class="ph-icon ph-x" aria-hidden="true"></span>
+        </button>
+      </form>
+      <span class="eyebrow">CURSEFORGE RELEASES</span>
+      <h2>Downgrade / choose version</h2>
+      <p id="versions-summary"></p>
+      <label class="field-label" for="release-choice">Compatible releases · newest first</label
+      ><select id="release-choice" size="7" class="full-input" aria-label="Addon release"></select>
+      <p id="release-description" class="small muted"></p>
+      <p class="small">
+        Installing replaces the package after making a backup. Future update checks still compare
+        with the latest stable release.
+      </p>
+      <div class="dialog-footer">
+        <button id="more-releases" class="subtle" hidden>Load older releases</button
+        ><button id="close-releases" class="subtle">Cancel</button
+        ><button id="install-release" class="primary" disabled>Install selected version</button>
+      </div>
+    </dialog>
+  </body>
+</html>
