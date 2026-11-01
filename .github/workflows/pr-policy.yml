@@ -13,13 +13,25 @@ jobs:
     name: Release label
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v4
+        id: changes
+        with:
+          predicate-quantifier: every
+          filters: .github/change-filters.yml
       - uses: actions/github-script@v7
+        env:
+          RELEASE_REQUIRED: ${{ steps.changes.outputs.release }}
         with:
           script: |
             const { data: pr } = await github.rest.pulls.get({
               ...context.repo,
               pull_number: context.issue.number
             });
+            if (process.env.RELEASE_REQUIRED === 'false') {
+              core.info('No application changes; no release label required.');
+              return;
+            }
             const prefixes = {
               major: /^feat(?:\([^\r\n)]+\))?!: .+$/,
               minor: /^feat(?:\([^\r\n)]+\))?: .+$/,

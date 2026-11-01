@@ -148,7 +148,7 @@ The app uses native windows, the OS WebView, local game folders and the OS crede
 
 ### Required release label
 
-Every PR requires exactly one of these labels. Other descriptive labels are allowed.
+PRs that change the application or its packaging require exactly one of these labels. Website, documentation and CI/tooling-only PRs do not require a release label. Other descriptive labels are allowed.
 
 | Label | PR title                                   | Version change from 0.1.0 |
 | ----- | ------------------------------------------ | ------------------------- |
@@ -162,6 +162,8 @@ Maintainers: in **Settings → Rules → Rulesets**, protect main, require a pul
 
 ## CI change detection and branch rules
 
+CI and PR policy use `dorny/paths-filter@v4` with shared filters in `.github/change-filters.yml`. Manual checks still run the full platform matrix. The release-history script retains its per-PR classification for draft version selection.
+
 One CI workflow handles PR validation, merges to main and manual releases. PRs never create releases. Check changes compares the full PR diff against its merge base, or all commits in a push; renames and deletions are included.
 
 | Changed files                                                                                                              | Three-platform checks | Release preparation on main |
@@ -171,9 +173,9 @@ One CI workflow handles PR validation, merges to main and manual releases. PRs n
 | README, CONTRIBUTING, CHANGELOG, docs/, LICENSE, .gitignore, .gitattributes, .editorconfig, CODEOWNERS, issue/PR templates | Skip                  | Skip                        |
 | Unknown new paths                                                                                                          | Run                   | Run (conservative default)  |
 
-Release preparation updates one draft after merges. Binaries are built only when you publish that draft or retry a published tag. The lightweight PR policy workflow still runs for documentation PRs and label changes.
+Release preparation updates one draft after merges. Binaries are built only when you publish that draft or retry a published tag. The lightweight PR policy workflow still runs for non-application PRs and label changes, but requires a release label only for application or packaging changes.
 
-Do not add workflow-level path filters: required jobs must report a result. The platform jobs report skipped for documentation-only changes. **CI result** fails if change detection fails, a required platform fails, or checks are unexpectedly skipped.
+Do not add workflow-level path filters: required jobs must report a result. The platform jobs report skipped for website-only (`site/**` and `.github/workflows/pages.yml`) and documentation-only changes. Changes to CI detection, tests or application workflows still run platform checks. **CI result** fails if change detection fails, a required platform fails, or checks are unexpectedly skipped.
 
 Import both **.github/rulesets/main.json** and **.github/rulesets/reviews.json** in Settings → Rules → Rulesets, replacing the old combined ruleset. The first requires a PR, squash merge, resolved conversations, current main and all CI checks, with no bypasses. The second requires one code-owner approval but permits @h2u (GitHub user ID 5619582) to bypass that review requirement only when merging a PR. The owner still cannot bypass CI or push directly to main. This exception lets the owner merge their own PR and can also be used by the owner on a contributor PR. CODEOWNERS remains @h2u for all files.
 
