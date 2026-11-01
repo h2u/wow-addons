@@ -1510,7 +1510,11 @@ td {
   flex-wrap: wrap;
   gap: 8px;
 }
+.about-links + .about-links {
+  margin-top: 12px;
+}
 .about-links > button {
+  flex: 0 0 auto;
   font-size: 12px;
   height: 36px;
   padding: 0 11px;
