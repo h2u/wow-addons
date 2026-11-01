@@ -1,0 +1,11 @@
+# Generated, binary and vendored files
+node_modules/
+target/
+dist/
+bin/
+.tools/
+gen/
+build/
+package-lock.json
+Cargo.lock
+desktop/assets/
