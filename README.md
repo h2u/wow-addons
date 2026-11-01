@@ -6,6 +6,8 @@ A compact, ad-free World of Warcraft addon manager built with **Rust and Tauri 2
 
 [Download](https://github.com/h2u/wow-addons/releases) · [Contribute](CONTRIBUTING.md) · [Buy Me a Coffee](https://buymeacoffee.com/edgars.spirins)
 
+![WoW Addons showing the Forever addon library](docs/images/wow-addons.png)
+
 ## Install
 
 Windows x64 is tested end to end. The release workflow also builds a universal macOS DMG. From [Releases](https://github.com/h2u/wow-addons/releases), choose the appropriate file:
