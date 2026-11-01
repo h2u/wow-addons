@@ -52,12 +52,14 @@
             <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
             ><span>Check for Updates</span>
           </button>
-          <button id="rescan" class="secondary">
-            <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span
-            ><span>Rescan Folders</span>
-          </button>
-          <button id="columns" class="secondary">
-            <span class="ph-icon ph-columns" aria-hidden="true"></span><span>Columns</span>
+          <button
+            id="library-more"
+            class="secondary"
+            popovertarget="library-menu"
+            aria-label="More library actions"
+            title="More actions"
+          >
+            <span class="ph-icon ph-dots-three-vertical" aria-hidden="true"></span>
           </button>
         </div>
         <div class="inventory-meta">
@@ -253,6 +255,22 @@
       </form>
       <span class="eyebrow">PREFERENCES</span>
       <h2>Settings</h2>
+      <div class="app-preferences">
+        <label
+          ><input id="close-to-tray" type="checkbox" /> Keep running in the tray when closing the
+          window</label
+        >
+        <label><input id="launch-at-login" type="checkbox" /> Launch at login</label>
+        <label
+          ><input id="check-on-startup" type="checkbox" /> Check addon updates when the app
+          starts</label
+        >
+        <p class="small">
+          Use the tray menu to open the window or quit. Launch at login uses this application's
+          current location; after moving a portable copy, enable it again.
+        </p>
+        <p id="desktop-settings-status" class="small" role="status"></p>
+      </div>
       <label class="field-label" for="api-key">CurseForge API key</label>
       <div class="path-input">
         <input
@@ -272,7 +290,10 @@
       <button id="open-api-console" class="subtle">
         <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Get a CurseForge API key
       </button>
-      <p class="small">Project links and icons are cached on this device. Startup stays offline.</p>
+      <p class="small">
+        Project links and icons are cached on this device. Automatic update checks require a saved
+        CurseForge API key and never install updates.
+      </p>
       <section class="about-section">
         <div class="about-title">
           <img class="about-logo" src="assets/app-icon.png" alt="" />
@@ -321,6 +342,40 @@
         <span class="ph-icon ph-trash" aria-hidden="true"></span>Remove
       </button>
     </div>
+    <div id="library-menu" class="addon-menu" popover>
+      <button id="rescan">
+        <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Rescan Folders
+      </button>
+      <button id="columns">
+        <span class="ph-icon ph-columns" aria-hidden="true"></span>Columns
+      </button>
+      <hr />
+      <button id="import-list">
+        <span class="ph-icon ph-arrow-down" aria-hidden="true"></span>Import list
+      </button>
+      <button id="export-list">
+        <span class="ph-icon ph-arrow-up" aria-hidden="true"></span>Export list
+      </button>
+    </div>
+    <dialog id="list-dialog">
+      <h2 id="list-title">Import addon list</h2>
+      <p id="list-description"></p>
+      <p id="list-help">
+        Existing addons will be replaced with backups. Entries without a source need manual
+        installation. A CurseForge API key is required. Known file versions are preserved; project
+        links use the latest compatible release.
+      </p>
+      <div id="list-selection-actions" class="list-selection-actions">
+        <button id="list-select-all" class="subtle">Select all</button>
+        <button id="list-deselect-all" class="subtle">Deselect all</button>
+        <span id="list-selected-count" role="status" aria-live="polite"></span>
+      </div>
+      <div id="list-entries"></div>
+      <div class="dialog-footer">
+        <button id="cancel-list" class="subtle">Cancel</button>
+        <button id="confirm-list" class="primary">Download and install</button>
+      </div>
+    </dialog>
     <dialog id="import-dialog">
       <form method="dialog">
         <button class="close" aria-label="Cancel">
@@ -332,6 +387,7 @@
       <p>These folders already exist. Reinstall replaces them after making a backup.</p>
       <div id="import-packages"></div>
       <div class="dialog-footer">
+        <button id="pick-import-version" class="subtle" hidden>Pick Different Version</button>
         <button id="cancel-import" class="subtle">Cancel</button
         ><button id="confirm-import" class="primary">
           <span class="ph-icon ph-arrows-clockwise" aria-hidden="true"></span>Reinstall
@@ -384,7 +440,7 @@
         <button id="url-open-page" class="subtle">
           <span class="ph-icon ph-arrow-square-out" aria-hidden="true"></span>Open Addon URL</button
         ><button id="confirm-url" class="primary">
-          <span class="ph-icon ph-plus" aria-hidden="true"></span>Install
+          <span class="ph-icon ph-plus" aria-hidden="true"></span>OK
         </button>
       </div>
     </dialog>
@@ -395,7 +451,7 @@
         </button>
       </form>
       <span class="eyebrow">CURSEFORGE RELEASES</span>
-      <h2>Downgrade / choose version</h2>
+      <h2>Choose version</h2>
       <p id="versions-summary"></p>
       <label class="field-label" for="release-choice">Compatible releases · newest first</label
       ><select id="release-choice" size="7" class="full-input" aria-label="Addon release"></select>

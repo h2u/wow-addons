@@ -1713,3 +1713,56 @@ td {
   background: var(--panel, #20232c);
   color: var(--text, #f0eff6);
 }
+
+#list-entries {
+  max-height: 40vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.list-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+#list-selected-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+.list-addon {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px solid #ffffff0d;
+  cursor: pointer;
+}
+.list-addon:hover {
+  background: #ffffff05;
+}
+.list-addon input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+#library-menu hr {
+  border: 0;
+  border-top: 1px solid #ffffff12;
+  margin: 5px;
+}
+
+.app-preferences {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.app-preferences label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.app-preferences p {
+  margin: 0;
+}

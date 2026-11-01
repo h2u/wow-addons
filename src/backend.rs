@@ -26,6 +26,8 @@ const COLUMNS: [&str; 7] = [
 pub fn defaults() -> Value {
     json!({
         "schemaVersion": 1,
+        "closeToTray": true,
+        "checkUpdatesOnStartup": true,
         "games": [],
         "selectedId": null,
         "columns": ["addon","version"],
@@ -56,6 +58,11 @@ fn validate(mut state: Value) -> Result<Value> {
                 .any(|a| !folder_name(text(a, "folder")) || !a["name"].is_string())
         {
             return Err("Invalid saved game inventory.".into());
+        }
+    }
+    for key in ["closeToTray", "checkUpdatesOnStartup"] {
+        if !state[key].is_boolean() {
+            state[key] = defaults()[key].clone();
         }
     }
     for key in ["bindings", "packages", "updates", "archives"] {
@@ -484,6 +491,155 @@ impl Service {
         self.persist()?;
         self.reports.insert(id.into(), report.clone());
         Ok(report)
+    }
+    fn export_list(&self, id: &str) -> Result<Value> {
+        let game = self.game(id)?;
+        let mut addons = Vec::new();
+        for group in self.groups(id)? {
+            let package = list(&self.state["packages"][id]).into_iter().find(|p| {
+                list(&p["folders"]).contains(&group["folder"])
+                    && p["installedVersion"] == group["version"]
+            });
+            let mut url = grouping::link(&group, &self.state["bindings"][id]);
+            if let Some(p) = package {
+                if let (Some(base), Some(file)) = (p["url"].as_str(), p["fileId"].as_u64()) {
+                    url = Some(format!("{base}/files/{file}"));
+                }
+            }
+            addons.push(json!({"name":group["name"],"version":group["version"],"url":url}));
+        }
+        let document = json!({
+            "format":"wow-addons-list", "schemaVersion":1,
+            "flavor":game["installation"]["flavor"], "addons":addons,
+        });
+        Self::validate_list(&document, text(&game["installation"], "flavor"))?;
+        Ok(document)
+    }
+    fn validate_list(document: &Value, flavor: &str) -> Result<()> {
+        if document["format"] != "wow-addons-list" || document["schemaVersion"] != 1 {
+            return Err("Unsupported addon list format or version.".into());
+        }
+        if flavor == "Custom" || flavor.is_empty() || document["flavor"] != flavor {
+            return Err("This addon list is for a different WoW client. Select the matching client (for example Forever or Retail). Custom clients are not supported.".into());
+        }
+        let addons = document["addons"].as_array().ok_or("Invalid addon list.")?;
+        if addons.len() > 500 {
+            return Err("Addon lists may contain at most 500 entries.".into());
+        }
+        let mut seen = BTreeSet::new();
+        for addon in addons {
+            if text(addon, "name").is_empty()
+                || text(addon, "name").len() > 300
+                || !addon["version"].is_string()
+            {
+                return Err("Invalid addon list entry.".into());
+            }
+            if !addon["url"].is_null() {
+                let url = addon["url"].as_str().ok_or("Invalid addon URL.")?;
+                provider::parse_url(url)?;
+                if !seen.insert(url) {
+                    return Err("Duplicate addon URL in list.".into());
+                }
+            }
+        }
+        Ok(())
+    }
+    fn install_list(&mut self, id: &str, document: &Value) -> Result<Value> {
+        let game = self.game(id)?;
+        Self::validate_list(document, text(&game["installation"], "flavor"))?;
+        let mut installed = 0;
+        let mut failures = Vec::new();
+        for addon in list(&document["addons"]) {
+            let outcome: Result<()> = (|| {
+                let url = addon["url"]
+                    .as_str()
+                    .ok_or("No download source; install manually.")?;
+                let plan = self.prepare_url(id, url)?;
+                if plan["blocked"] == true {
+                    return Err("Provider requires a manual browser download.".into());
+                }
+                self.install(text(&plan, "token"))?;
+                Ok(())
+            })();
+            match outcome {
+                Ok(()) => installed += 1,
+                Err(e) => failures.push(json!({"name":addon["name"],"reason":e})),
+            }
+        }
+        Ok(json!({"state":self.state,"installed":installed,"failures":failures}))
+    }
+    fn select_list(&self, id: &str, selection: &Value) -> Result<Value> {
+        let mut document = self.export_list(id)?;
+        let indices = selection.as_array().ok_or("Invalid addon selection.")?;
+        if indices.is_empty() {
+            return Err("Select at least one addon.".into());
+        }
+        let all = list(&document["addons"]);
+        let mut selected = Vec::new();
+        let mut seen = BTreeSet::new();
+        for index in indices {
+            let index = index
+                .as_u64()
+                .and_then(|n| usize::try_from(n).ok())
+                .filter(|&n| n < all.len())
+                .ok_or("Addon selection changed. Open export again.")?;
+            if !seen.insert(index) {
+                return Err("Duplicate addon selection.".into());
+            }
+            selected.push(all[index].clone());
+        }
+        document["addons"] = json!(selected);
+        Ok(document)
+    }
+    fn list_dialog(&self, id: &str, selection: Option<&Value>) -> Result<Value> {
+        #[cfg(feature = "desktop")]
+        {
+            let game = self.game(id)?;
+            let document = if let Some(selection) = selection {
+                Some(self.select_list(id, selection)?)
+            } else {
+                None
+            };
+            let dialog = rfd::FileDialog::new().add_filter("Addon list JSON", &["json"]);
+            let chosen = if document.is_some() {
+                dialog
+                    .set_title("Export addon list")
+                    .set_file_name("wow-addons.json")
+                    .save_file()
+            } else {
+                dialog.set_title("Import addon list").pick_file()
+            };
+            let Some(path) = chosen else {
+                return Ok(Value::Null);
+            };
+            if let Some(document) = document {
+                fs::write(
+                    &path,
+                    serde_json::to_vec_pretty(&document).map_err(|e| e.to_string())?,
+                )
+                .map_err(|e| e.to_string())?;
+                Ok(json!({"count":list(&document["addons"]).len()}))
+            } else {
+                let mut bytes = Vec::new();
+                fs::File::open(path)
+                    .map_err(|e| e.to_string())?
+                    .take(1024 * 1024 + 1)
+                    .read_to_end(&mut bytes)
+                    .map_err(|e| e.to_string())?;
+                if bytes.len() > 1024 * 1024 {
+                    return Err("Addon list exceeds 1 MB.".into());
+                }
+                let document: Value = serde_json::from_slice(&bytes)
+                    .map_err(|e| format!("Invalid addon list JSON: {e}"))?;
+                Self::validate_list(&document, text(&game["installation"], "flavor"))?;
+                Ok(document)
+            }
+        }
+        #[cfg(not(feature = "desktop"))]
+        {
+            let _ = (id, selection);
+            Err("File dialogs require the desktop feature.".into())
+        }
     }
     fn prepare_archive(&mut self, id: &str, input: &str, mut source: Value) -> Result<Value> {
         let current = self.game(id)?;
@@ -931,6 +1087,18 @@ impl Service {
             return Err(e.clone());
         }
         match method {
+            "addon-list" => self.export_list(&arg(0)?),
+            "select-addon-list" => {
+                self.select_list(&arg(0)?, args.get(1).ok_or("Missing addon selection.")?)
+            }
+            "export-list" => self.list_dialog(
+                &arg(0)?,
+                Some(args.get(1).ok_or("Missing addon selection.")?),
+            ),
+            "choose-list" => self.list_dialog(&arg(0)?, None),
+            "install-list" => {
+                self.install_list(&arg(0)?, args.get(1).ok_or("Missing addon list.")?)
+            }
             "about" => Ok(json!({
                 "version": env!("CARGO_PKG_VERSION"),
                 "repository": "https://github.com/h2u/wow-addons",
@@ -1024,7 +1192,13 @@ impl Service {
             }
             "preferences" => {
                 let data = args.first().ok_or("Missing preferences.")?;
-                for field in ["columns", "columnOrder", "sort"] {
+                for field in [
+                    "columns",
+                    "columnOrder",
+                    "sort",
+                    "closeToTray",
+                    "checkUpdatesOnStartup",
+                ] {
                     if data.get(field).is_some() {
                         self.state[field] = data[field].clone();
                     }
@@ -1101,6 +1275,19 @@ impl Service {
                 Ok(Value::Null)
             }
             "check-updates" => self.check_updates(&arg(0)?, args.get(1).and_then(Value::as_str)),
+            "url-releases" => {
+                let id = arg(0)?;
+                let url = arg(1)?;
+                let g = self.game(&id)?;
+                let flavor = text(&g["installation"], "flavor");
+                let index = match args.get(2) {
+                    None | Some(Value::Null) => 0,
+                    Some(v) => v.as_u64().ok_or("Invalid release page.")?,
+                };
+                let mut result = self.provider.releases(&url, flavor, &self.key, index)?;
+                result["flavor"] = json!(flavor);
+                Ok(result)
+            }
             "releases" => {
                 let id = arg(0)?;
                 let group = self.group(&id, &arg(1)?)?;
@@ -1270,6 +1457,37 @@ mod tests {
         fs::remove_dir_all(p).unwrap();
     }
     #[test]
+    fn lifecycle_preferences_migrate_and_survive_restart() {
+        let p = temp();
+        let mut old = defaults();
+        old.as_object_mut().unwrap().remove("closeToTray");
+        old["checkUpdatesOnStartup"] = json!("invalid");
+        atomic(
+            &p.join("inventory.json"),
+            &serde_json::to_vec(&old).unwrap(),
+        )
+        .unwrap();
+        let mut s = Service::new(
+            p.clone(),
+            std::sync::Arc::new(|_| panic!("Loading must stay offline")),
+        )
+        .unwrap();
+        assert_eq!(s.state["closeToTray"], true);
+        assert_eq!(s.state["checkUpdatesOnStartup"], true);
+        s.dispatch(
+            "preferences",
+            &[json!({"closeToTray":false,"checkUpdatesOnStartup":false})],
+        )
+        .unwrap();
+        s.dispatch("preferences", &[json!({"columns":["addon","folder"]})])
+            .unwrap();
+        let s = Service::new(p.clone(), std::sync::Arc::new(|_| {})).unwrap();
+        assert_eq!(s.state["closeToTray"], false);
+        assert_eq!(s.state["checkUpdatesOnStartup"], false);
+        fs::remove_dir_all(p).unwrap();
+    }
+
+    #[test]
     fn cached_startup_and_column_preferences_survive_restart() {
         let p = temp();
         let mut state = defaults();
@@ -1333,5 +1551,64 @@ mod tests {
         );
         assert!(!root.join("Interface/AddOns/Main").exists());
         fs::remove_dir_all(p).unwrap();
+    }
+    #[test]
+    fn addon_list_roundtrip_pins_files_and_excludes_private_state() {
+        let dir = std::env::temp_dir().join(format!("addon-list-{}", uuid::Uuid::new_v4()));
+        let mut service = Service::new(dir.clone(), std::sync::Arc::new(|_| {})).unwrap();
+        service.state["games"] = json!([{
+            "id":"friend", "installation":{"root":"/private/game","flavor":"Forever"},
+            "addons":[{"folder":"Example","name":"Example","version":"1"}]
+        }]);
+        service.state["packages"]["friend"] = json!([{
+            "primary":"Example","folders":["Example"],"installedVersion":"1",
+            "url":"https://www.curseforge.com/wow/addons/example","fileId":42
+        }]);
+        let document = service.export_list("friend").unwrap();
+        assert_eq!(
+            document["addons"][0]["url"],
+            "https://www.curseforge.com/wow/addons/example/files/42"
+        );
+        assert!(!document.to_string().contains("/private"));
+        assert_eq!(
+            service.select_list("friend", &json!([0])).unwrap(),
+            document
+        );
+        assert!(service.select_list("friend", &json!([])).is_err());
+        assert!(service.select_list("friend", &json!([0, 0])).is_err());
+        assert!(service.select_list("friend", &json!([1])).is_err());
+        assert!(service.select_list("friend", &json!([-1])).is_err());
+        service.state["games"][0]["addons"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"folder":"Other", "name":"Other", "version":"2"}));
+        let subset = service.select_list("friend", &json!([0])).unwrap();
+        assert_eq!(subset["addons"].as_array().unwrap().len(), 1);
+        assert_eq!(subset["addons"][0]["name"], "Example");
+        Service::validate_list(&document, "Forever").unwrap();
+        assert!(Service::validate_list(&document, "Retail").is_err());
+        assert!(service.install_list("missing", &document).is_err());
+        service.state["games"][0]["installation"]["flavor"] = json!("Retail");
+        assert!(service
+            .install_list("friend", &document)
+            .unwrap_err()
+            .contains("different WoW client"));
+        fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn addon_lists_reject_invalid_sources_versions_and_duplicates() {
+        let mut document = json!({"format":"wow-addons-list","schemaVersion":1,"flavor":"Forever",
+            "addons":[{"name":"Example","version":"1","url":null}]});
+        Service::validate_list(&document, "Forever").unwrap();
+        assert!(Service::validate_list(&document, "Custom").is_err());
+        document["addons"][0]["url"] = json!("https://evil.test/addon.zip");
+        assert!(Service::validate_list(&document, "Forever").is_err());
+        document["addons"][0]["url"] = json!("https://www.curseforge.com/wow/addons/example");
+        let duplicate = document["addons"][0].clone();
+        document["addons"].as_array_mut().unwrap().push(duplicate);
+        assert!(Service::validate_list(&document, "Forever").is_err());
+        document["addons"] = json!([]);
+        document["schemaVersion"] = json!(2);
+        assert!(Service::validate_list(&document, "Forever").is_err());
     }
 }

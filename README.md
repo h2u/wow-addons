@@ -6,6 +6,8 @@ A compact, ad-free World of Warcraft addon manager built with **Rust and Tauri 2
 
 [Download](https://github.com/h2u/wow-addons/releases) · [Contribute](CONTRIBUTING.md) · [Buy Me a Coffee](https://buymeacoffee.com/edgars.spirins)
 
+![WoW Addons showing the Forever addon library](docs/images/wow-addons.png)
+
 ## Install
 
 Windows x64 is tested end to end. The release workflow also builds a universal macOS DMG. From [Releases](https://github.com/h2u/wow-addons/releases), choose the appropriate file:
@@ -54,6 +56,12 @@ Selecting an old release does not pin it: update checks can offer the latest sta
 
 Automatic CurseForge release selection currently supports Retail, Forever and Classic Era. ZIP compatibility for progressing Classic clients also uses `.build.info`. Unknown client versions may need additional support.
 
+## Application preferences
+
+Settings includes **Keep running in the tray when closing the window** (on by default), **Launch at login** (off by default), and **Check addon updates when the app starts** (on by default). The tray icon appears while the app is running; use its menu to open the window or quit. Launching the app again opens the existing instance. If tray creation fails, closing the window quits normally.
+
+Launch at login uses the OS login mechanism on Windows, macOS and Linux. Portable Windows executables also support it: keep the executable in a permanent location, and enable the option again after moving it. Disable launch at login before deleting a portable copy. Portable builds keep preferences in the same user data directory shown below. Linux requires a desktop environment with tray/AppIndicator support.
+
 ## Local data
 
 | System  | Default directory                                       |
@@ -64,7 +72,7 @@ Automatic CurseForge release selection currently supports Retail, Forever and Cl
 
 Profiles, inventory, links, package ownership and table preferences live in `inventory.json`. Icons and project metadata are in `cache/`, ZIP snapshots in `archives/`, and replaced/removed folders in `backups/`. WebView data is isolated in `webview/`. API keys live in the OS credential store.
 
-Existing preview inventory and compatible icon caches are reused. Keep backups for manual recovery. Startup and client switching use saved snapshots without automatic rescans or API requests.
+Existing preview inventory and compatible icon caches are reused. Keep backups for manual recovery. Client switching uses saved snapshots without automatic rescans or API requests. At startup, addon update checks run for all saved profiles when enabled and a saved API key is available; they never install updates.
 
 ## Build from source
 

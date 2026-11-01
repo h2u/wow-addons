@@ -68,10 +68,18 @@ let app, profile;
   );
   await wait('!working && document.getElementById("api-key-status").textContent.includes("saved")');
   assert.equal((await evaluate('await window.inventory.keyStatus()')).saved, true);
+  // Keep the cached-startup scenario offline despite its saved synthetic API key.
+  assert.equal(await evaluate('document.getElementById("check-on-startup").checked'), true);
+  await evaluate('document.getElementById("check-on-startup").click()');
+  await wait('!working && state.checkUpdatesOnStartup===false');
   const saved = await fs.readFile(path.join(profile, 'inventory.json'), 'utf8');
   await app.close();
   app = await driver.launch(profile);
   assert.equal((await app.evaluate('await window.inventory.keyStatus()')).configured, true);
+  assert.equal(await app.evaluate('state.checkUpdatesOnStartup'), false);
+  await app.evaluate('document.getElementById("settings").click()');
+  assert.equal(await app.evaluate('document.getElementById("check-on-startup").checked'), false);
+  await app.evaluate('document.getElementById("settings-dialog").close()');
   assert.equal(await fs.readFile(path.join(profile, 'inventory.json'), 'utf8'), saved);
   await app.evaluate(
     'await window.inventory.clearApiKey();document.querySelector("[data-actions=Bagnon]").click();document.querySelector("[data-action=remove]").click()',
