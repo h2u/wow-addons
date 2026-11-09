@@ -1,4 +1,4 @@
-use super::{flavor, metadata, toc_score};
+use super::{flavor, metadata, read_toc, toc_score, TOC_LIMIT};
 use serde::Serialize;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -137,11 +137,10 @@ fn analyze(
                 .last()
                 .is_some_and(|n| n.to_lowercase().ends_with(".toc"))
         {
-            if file.size() > 1024 * 1024 {
+            if file.size() > TOC_LIMIT {
                 return Err("TOC file is too large".into());
             }
-            let mut text = String::new();
-            file.read_to_string(&mut text).map_err(|e| e.to_string())?;
+            let text = read_toc(&mut file).map_err(|e| e.to_string())?;
             tocs.push((parts.clone(), metadata(&text)));
         }
         entries.push(Entry {
@@ -504,6 +503,43 @@ mod tests {
             z.write_all(s.as_bytes()).unwrap();
         }
         z.finish().unwrap();
+    }
+    #[test]
+    fn installs_large_database_toc_and_scans_its_metadata() {
+        let p = fixture();
+        let root = p.join("_forever_");
+        let z = p.join("database.zip");
+        // QuestieDB embeds its database in TOC metadata, beyond the old 1 MB cap.
+        let toc = format!(
+            "## Interface: 16001\n## Title: QuestieDB\n## Version: 1.0.13\n## X-Data: {}\n## X-Curse-Project-ID: 1696795\n",
+            "x".repeat(2 * 1024 * 1024)
+        );
+        zip(&z, &[("QuestieDB/QuestieDB_Forever.toc", &toc)]);
+        let plan = inspect(&root, &z).unwrap();
+        assert_eq!(plan["packages"][0]["version"], "1.0.13");
+        install(&root, &z, &p.join("backup")).unwrap();
+        assert_eq!(
+            fs::read_to_string(root.join("Interface/AddOns/QuestieDB/QuestieDB_Forever.toc"))
+                .unwrap(),
+            toc
+        );
+        let scan = super::super::scan(&root).unwrap();
+        assert!(scan.warnings.is_empty());
+        assert_eq!(scan.addons[0].name, "QuestieDB");
+        assert_eq!(scan.addons[0].version, "1.0.13");
+        assert_eq!(scan.addons[0].curse_project_id, Some(1696795));
+        assert_eq!(scan.addons[0].compatibility, "Forever");
+        assert_eq!(
+            crate::provider::assess(
+                &scan.addons[0].version,
+                None,
+                &serde_json::json!({"id": 9514215, "displayName": "v1.0.13 (Forever)"}),
+                &serde_json::Value::Null,
+                &serde_json::Value::Null,
+            )["status"],
+            "current"
+        );
+        fs::remove_dir_all(p).unwrap();
     }
     #[test]
     fn handles_windows_zip_paths_and_rejects_windows_traversal() {
