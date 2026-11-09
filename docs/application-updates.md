@@ -16,6 +16,8 @@ Losing the key prevents future updates for existing installations. Changing the 
 
 Use the existing release workflow and a stable `vX.Y.Z` tag. Both release jobs require the signing secret. Tauri signs the NSIS installer and macOS updater archive; the export script signs the portable executable with its application version. Both platforms upload their artifacts and `.sig` files. Only after both jobs succeed does the final job publish `latest.json`, mapping installed Windows, portable Windows, and both macOS architectures to the appropriate signed files. The client requires signatures bound to the announced version.
 
+If the release download URL fails, the client retrieves the same latest stable manifest through the GitHub release asset API. Tauri still checks the version and platform and verifies the signed package before installation. If both routes fail, the check reports both errors and can be retried. This fallback requires an app build containing the fix; existing installations can retry later or install a release manually.
+
 No separate update server is required. GitHub hosts the manifest and downloads. Drafts and prereleases are not the stable update channel. Until a release containing the updater has been installed manually, older apps cannot update themselves.
 
 ## Verification
