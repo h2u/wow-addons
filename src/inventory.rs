@@ -4,6 +4,7 @@ use serde::Serialize;
 use std::{
     collections::BTreeMap,
     fs,
+    io::Read,
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -125,6 +126,17 @@ fn discover(input: &Path) -> Result<Vec<Installation>, String> {
         );
     }
     Ok(found)
+}
+// Database addons such as QuestieDB embed megabytes of data in TOC metadata.
+// Match the archive's per-file limit and bound actual reads as well as sizes.
+const TOC_LIMIT: u64 = 64 * 1024 * 1024;
+fn read_toc(reader: impl Read) -> std::io::Result<String> {
+    let mut bytes = Vec::new();
+    reader.take(TOC_LIMIT + 1).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > TOC_LIMIT {
+        return Err(std::io::Error::other("TOC exceeds 64 MB"));
+    }
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 fn metadata(text: &str) -> BTreeMap<String, String> {
     let mut result = BTreeMap::new();
@@ -257,13 +269,8 @@ fn scan(root: &Path) -> Result<Scan, String> {
         });
         let toc = tocs.first();
         let meta = if let Some(toc) = toc {
-            match fs::metadata(toc).and_then(|m| {
-                if m.len() > 1024 * 1024 {
-                    return Err(std::io::Error::other("TOC exceeds 1 MB"));
-                }
-                fs::read(toc)
-            }) {
-                Ok(bytes) => metadata(&String::from_utf8_lossy(&bytes)),
+            match fs::File::open(toc).and_then(read_toc) {
+                Ok(text) => metadata(&text),
                 Err(e) => {
                     warnings.push(format!("{folder}: {e}"));
                     BTreeMap::new()
@@ -376,6 +383,14 @@ mod tests {
         ));
         fs::create_dir_all(p.join("_forever_/Interface/AddOns/Test")).unwrap();
         p
+    }
+    #[test]
+    fn bounds_actual_toc_reads() {
+        let oversized = std::io::repeat(b'x').take(TOC_LIMIT + 100);
+        assert!(read_toc(oversized)
+            .unwrap_err()
+            .to_string()
+            .contains("64 MB"));
     }
     #[test]
     fn cleans_wow_markup_and_bom() {

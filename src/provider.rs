@@ -398,6 +398,14 @@ fn normalize(s: &str) -> String {
     } else {
         s
     };
+    // CurseForge releases may append a client name to a numeric version.
+    // Only strip known client labels; prerelease and arbitrary suffixes matter.
+    let s = regex::Regex::new(
+        r"^([0-9]+(?:\.[0-9]+){1,3})\s+\((forever|retail|classic|vanilla|tbc|wrath|cata|mists)\)$",
+    )
+    .unwrap()
+    .replace(&s, "$1")
+    .into_owned();
     regex::Regex::new("-(release|stable|forever|retail|classic)$")
         .unwrap()
         .replace(&s, "")
@@ -532,6 +540,30 @@ mod tests {
             assess("", Some(42), &latest, &Value::Null, &Value::Null)["status"],
             "current"
         );
+    }
+    #[test]
+    fn compares_numeric_versions_with_known_client_labels() {
+        for flavor in ["Forever", "Vanilla", "TBC", "Wrath", "Cata", "Mists"] {
+            let latest = json!({"id":42,"displayName":format!("v1.0.13 ({flavor})")});
+            for (version, expected) in [
+                ("1.0.13", "current"),
+                ("1.0.12", "available"),
+                ("1.0.14", "ahead"),
+                ("", "unverified"),
+            ] {
+                assert_eq!(
+                    assess(version, None, &latest, &Value::Null, &Value::Null)["status"],
+                    expected
+                );
+            }
+        }
+        for label in ["v1.0.13 (Beta)", "v1.0.13 (RC1)", "v1.0.13-beta (Forever)"] {
+            let latest = json!({"id":42,"displayName":label});
+            assert_eq!(
+                assess("1.0.13", None, &latest, &Value::Null, &Value::Null)["status"],
+                "unverified"
+            );
+        }
     }
     #[test]
     fn game_flavors_do_not_cross() {
