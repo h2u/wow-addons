@@ -2,6 +2,7 @@
 mod app_update;
 #[cfg(windows)]
 mod portable_update;
+mod update_manifest;
 use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};

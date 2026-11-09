@@ -56,12 +56,24 @@ pub async fn check_app_update(
     if portable() {
         builder = builder.target("windows-x86_64-portable");
     }
-    let mut update = builder
-        .build()
-        .map_err(|e| e.to_string())?
-        .check()
-        .await
-        .map_err(|e| format!("Could not check for application updates: {e}"))?;
+    let updater = builder.build().map_err(|e| e.to_string())?;
+    let mut update = match updater.check().await {
+        Ok(update) => update,
+        Err(primary) => {
+            // The release redirect can fail while GitHub's API is healthy.
+            // Tauri still checks versions/targets and verifies signed packages.
+            let fallback = async {
+                let manifest = crate::update_manifest::fetch().await?;
+                updater.restore_update(manifest).map_err(|e| e.to_string())
+            }
+            .await;
+            fallback.map_err(|fallback| {
+                format!(
+                    "Could not check for application updates: {primary}. GitHub API fallback: {fallback}. Please try again later."
+                )
+            })?
+        }
+    };
     if let Some(update) = &mut update {
         update.timeout = Some(Duration::from_secs(600));
     }
