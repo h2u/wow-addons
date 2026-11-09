@@ -488,10 +488,7 @@ mod tests {
         let p = std::env::temp_dir().join(format!(
             "wow-zip-test-{}-{}",
             std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
+            uuid::Uuid::new_v4()
         ));
         fs::create_dir_all(p.join("_forever_/Interface/AddOns")).unwrap();
         p
