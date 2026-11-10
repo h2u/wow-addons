@@ -106,7 +106,8 @@ jobs:
           path: ${{ runner.temp }}/wow-tauri-test-*/ui-startup.json
           if-no-files-found: ignore
     needs: changes
-    if: needs.changes.outputs.check == 'true'
+    # Branch protection requires each platform check on every pull request.
+    if: github.event_name == 'pull_request' || needs.changes.outputs.check == 'true'
   release:
     name: Select published release
     runs-on: ubuntu-latest

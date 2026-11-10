@@ -1,5 +1,13 @@
 :root {
   color-scheme: dark;
+  /* Keep the palette aligned with desktop/styles.css. */
+  --bg: #15171c;
+  --panel: #1d2027;
+  --line: #30333d;
+  --muted: #949aa9;
+  --text: #e8eaf1;
+  --accent: #a899ff;
+  --purple: #7865e8;
   font-family:
     Inter,
     ui-sans-serif,
@@ -8,8 +16,8 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  color: #eeefe8;
-  background: #131612;
+  color: var(--text);
+  background: var(--bg);
   font-synthesis: none;
 }
 * {
@@ -23,11 +31,11 @@ a {
   text-decoration: none;
 }
 a:focus-visible {
-  outline: 3px solid #c7df9d;
+  outline: 3px solid var(--accent);
   outline-offset: 6px;
 }
 a:hover {
-  color: #d0e5ae;
+  color: #c7bdfc;
 }
 .container {
   width: min(1120px, calc(100% - 64px));
@@ -55,9 +63,9 @@ nav {
   display: flex;
   gap: 30px;
   font-size: 14px;
-  color: #b9beb2;
+  color: #bdc2d0;
 }
-nav span {
+nav .ph-icon {
   margin-left: 5px;
 }
 .hero {
@@ -69,7 +77,7 @@ nav span {
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 1.7px;
-  color: #bacd9f;
+  color: var(--accent);
 }
 .eyebrow {
   display: flex;
@@ -80,7 +88,7 @@ nav span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #c3dba2;
+  background: var(--accent);
 }
 h1 {
   font-size: clamp(40px, 6.3vw, 76px);
@@ -90,13 +98,13 @@ h1 {
   margin: 26px 0;
 }
 h1 span {
-  color: #a6b397;
+  color: var(--accent);
 }
 .intro {
   max-width: 560px;
   font-size: 18px;
   line-height: 1.75;
-  color: #b6bbae;
+  color: #bdc2d0;
 }
 .actions {
   display: flex;
@@ -113,28 +121,28 @@ h1 span {
   padding: 15px 21px;
   font-size: 14px;
   font-weight: 600;
-  border: 1px solid #3b4335;
+  border: 1px solid #3a3e49;
   transition: background 0.15s;
 }
 .primary {
-  background: #c7df9d;
-  border-color: #c7df9d;
-  color: #202719;
+  background: var(--purple);
+  border-color: #927ff4;
+  color: #ffffff;
 }
 .primary:hover {
-  background: #d7ecb6;
-  color: #202719;
+  background: #8976f4;
+  color: #ffffff;
 }
 .secondary {
-  background: #1b2018;
+  background: var(--panel);
 }
 .secondary:hover {
-  background: #293023;
+  background: #353947;
 }
 .release-note {
   margin-top: 17px;
   font-size: 12px;
-  color: #929b88;
+  color: var(--muted);
 }
 .preview {
   margin: 0;
@@ -142,10 +150,10 @@ h1 span {
 .preview a {
   display: block;
   overflow: hidden;
-  border: 1px solid #384031;
+  border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 24px 80px #0004;
-  background: #1b2018;
+  background: var(--panel);
 }
 .preview img {
   width: 100%;
@@ -154,7 +162,7 @@ h1 span {
 }
 figcaption {
   text-align: center;
-  color: #929b88;
+  color: var(--muted);
   font-size: 12px;
   padding-top: 17px;
 }
@@ -175,7 +183,7 @@ h2 {
 }
 .features p,
 .support p {
-  color: #a7ae9f;
+  color: var(--muted);
   font-size: 14px;
   line-height: 1.8;
   margin: 0;
@@ -184,7 +192,7 @@ h2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 60px;
-  border-block: 1px solid #30372b;
+  border-block: 1px solid var(--line);
   padding-block: 42px;
 }
 .credits h2 {
@@ -204,14 +212,14 @@ h2 {
   font-size: 16px;
   font-weight: 550;
 }
-.credit-links strong span {
+.credit-links strong .ph-icon {
   margin-left: 8px;
-  color: #bacd9f;
+  color: var(--accent);
 }
 .credit-links a > span {
   font-size: 13px;
   line-height: 1.7;
-  color: #a7ae9f;
+  color: var(--muted);
 }
 .support {
   display: flex;
@@ -227,11 +235,11 @@ h2 {
   flex-shrink: 0;
 }
 footer {
-  border-top: 1px solid #30372b;
+  border-top: 1px solid var(--line);
   padding-block: 24px 34px;
   font-size: 11px;
   line-height: 1.8;
-  color: #929b88;
+  color: var(--muted);
 }
 footer p {
   margin: 4px 0;
@@ -274,4 +282,45 @@ footer a {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.ph-icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  background: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  vertical-align: middle;
+  pointer-events: none;
+}
+.ph-arrow-square-out {
+  --icon: url('assets/phosphor/arrow-square-out.svg');
+}
+.ph-arrow-down {
+  --icon: url('assets/phosphor/arrow-down.svg');
+}
+.ph-heart {
+  --icon: url('assets/phosphor/heart.svg');
+}
+footer .made-with-love {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+}
+.made-with-love a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+}
+.made-with-love .ph-heart {
+  color: var(--accent);
+  width: 16px;
+  height: 16px;
+  flex-basis: 16px;
+}
+.made-with-love a:hover {
+  color: var(--accent);
 }
